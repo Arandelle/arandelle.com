@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(bryl-minimal-design)",
+      "WebFetch(bryllim.com)",
+      "Bash(npm run *)"
+    ]
+  },
+  "$version": 4
+}

@@ -6,72 +6,164 @@ export const BOOKING_URL =
 export const AVATAR_URL =
   "/profile.jfif";
 
+// ── Profile ────────────────────────────────────────────────────────────────
+
 export interface Profile {
   name: string;
   location: string;
   email: string;
-  roles: string[];
-  featured: { label: string; href: string };
+  role: string;
   bioParagraphs: string[];
 }
 
 export const profile: Profile = {
   name: "Arandelle Paguinto",
-  location: "City of San Pedro, Laguna, Philippines",
+  location: "San Pedro, Laguna, Philippines",
   email: "hello@arandelle.com",
-  roles: ["Software Engineer", "Web Developer", "Fullstack Developer"],
-  featured: {
-    label: "Developed Ordering System for the restaurant · 2026",
-    href: "https://food.harrisoninasalbbq.com.ph",
-  },
+  role: "Fullstack Web Developer",
   bioParagraphs: [
     "I'm a full-stack developer passionate about building modern web applications that are fast, responsive, and easy to use. I enjoy turning ideas into real products with technologies like React, Next.js, TypeScript, Node.js, and MongoDB, while continuously improving my engineering skills.",
-    "I believe there's always a better way to write software. I enjoy learning new technologies, refactoring code, solving complex problems, and building projects that challenge me to think like a senior engineer. Every project is an opportunity to improve both my technical skills and the experience I create for users.",
-    "Outside of coding, you'll usually find me exploring software architecture, contributing to personal projects, keeping up with new technologies, or planning the next feature to build. My goal is simple: become the kind of software engineer who creates products people genuinely enjoy using.",
+    "I believe there's always a better way to write software. I enjoy learning new technologies, refactoring code, solving complex problems, and building projects that challenge me to think like a senior engineer.",
+    "Outside of coding, you'll usually find me exploring software architecture, contributing to personal projects, keeping up with new technologies, or planning the next feature to build.",
   ],
 };
 
+// ── Navigation tabs ────────────────────────────────────────────────────────
+
+export type TabId =
+  | "home"
+  | "certifications"
+  | "projects"
+  | "blogs"
+  | "contact"
+  | "smarttalk";
+
+export const navItems: { id: TabId; label: string }[] = [
+  { id: "home", label: "Home" },
+  { id: "certifications", label: "Certifications" },
+  { id: "projects", label: "Projects" },
+  { id: "blogs", label: "Blogs" },
+  { id: "contact", label: "Contact" },
+  { id: "smarttalk", label: "Smart Talk" },
+];
+
+// ── Experience ─────────────────────────────────────────────────────────────
+
+export interface ExperienceEntry {
+  title: string;
+  company: string;
+  companyUrl: string;
+  location: string;
+  startDate: string; // e.g. "July 2025"
+  endDate?: string; // e.g. "Present", omitted → current
+  isCurrent: boolean;
+  description: string;
+  technologies: string[];
+  awards?: { title: string; description: string }[];
+}
+
+export const experiences: ExperienceEntry[] = [
+  {
+    title: "Fullstack Web Developer",
+    company: "JPSC Group Holdings Inc.",
+    companyUrl: "#",
+    location: "Philippines",
+    startDate: "July 2025",
+    isCurrent: true,
+    description:
+      "Developed and maintained full-stack web applications using React, Next.js, Node.js, and MongoDB. Collaborated with cross-functional teams to design and implement new features, optimize performance, and ensure a seamless user experience across all platforms.",
+    technologies: [
+      "React",
+      "Next.js",
+      "TypeScript",
+      "Node.js",
+      "MongoDB",
+      "Tailwind CSS",
+      "REST APIs",
+    ],
+  },
+];
+
+// Career progression timeline (all roles, including education)
 export interface TimelineItem {
   title: string;
   org: string;
-  period: string;
-  kind: "work" | "education";
+  startDate: string;
+  endDate: string;
 }
 
 export const timeline: TimelineItem[] = [
   {
     title: "Fullstack Web Developer",
-    org: "JPSC Group Holdings Inc. (JPTech Solutions Inc.)",
-    period: "2026 — Present",
-    kind: "work",
+    org: "JPSC Group Holdings Inc.",
+    startDate: "2025",
+    endDate: "Present",
   },
   {
-    title: "Bachelor of Science in Information Technologies",
-    org: "Cavite State University - Tanza Campus",
-    period: "2020 — 2025",
-    kind: "education",
+    title: "BS Information Technology",
+    org: "Cavite State University – Tanza Campus",
+    startDate: "2020",
+    endDate: "2025",
   },
 ];
 
-export interface TechGroup {
-  category: string;
-  items: string[];
+// ── Technical Expertise ────────────────────────────────────────────────────
+
+export interface ExpertiseGroup {
+  heading: string;
+  skills: string[];
 }
 
-export const techStack: TechGroup[] = [
+export const expertise: ExpertiseGroup[] = [
   {
-    category: "Frontend",
-    items: ["TypeScript", "React", "Next.js", "Tailwind CSS"],
+    heading: "Programming",
+    skills: [
+      "Laravel",
+      "JavaScript / TypeScript",
+      "React.js & Tailwind CSS",
+      "Next.js",
+      "Node.js & Express.js",
+    ],
   },
   {
-    category: "Backend",
-    items: ["Node.js", "Python", "MongoDB", "MySQL", "FastAPI", "JavaScript"],
+    heading: "Design & Development",
+    skills: [
+      "Figma Design & Prototyping",
+      "Wireframing & User Flow Design",
+      "UI/UX",
+      "WordPress Development & Customization",
+    ],
   },
   {
-    category: "DevOps & Cloud",
-    items: ["Alibaba Cloud", "Docker", "GitHub Actions", "Vercel"],
+    heading: "Systems",
+    skills: [
+      "GoHighLevel",
+      "RoboFlow",
+      "Git & GitHub Version Control",
+      "Computer System Servicing",
+      "API Testing with Postman",
+    ],
   },
 ];
+
+// ── Certifications ─────────────────────────────────────────────────────────
+
+export interface Certification {
+  name: string;
+  issuer: string;
+  url: string;
+  date?: string;
+}
+
+export const certifications: Certification[] = [
+  {
+    name: "Mobile Application Development",
+    issuer: "Bayan Academy (BPI TechVoc Program)",
+    url: "#",
+  },
+];
+
+// ── Projects ───────────────────────────────────────────────────────────────
 
 export interface Project {
   name: string;
@@ -106,47 +198,15 @@ export const projects: Project[] = [
   },
 ];
 
-export interface Certification {
-  name: string;
-  issuer: string;
-  url: string;
-}
-
-export const certifications: Certification[] = [
-  {
-    name: "Mobile Application Development",
-    issuer: "Bayan Academy (BPI TechVoc Program)",
-    url: "#",
-  },
-];
-
-export interface Testimonial {
-  quote: string;
-  name: string;
-  title: string;
-}
-
-export const testimonials: Testimonial[] = [
-];
-
-export interface SocialLink {
-  label: string;
-  href: string;
-  icon: "linkedin" | "github";
-}
-
-export const socials: SocialLink[] = [
-  { label: "LinkedIn", href: "https://www.linkedin.com/in/arandelle-paguinto-588237285", icon: "linkedin" },
-  { label: "GitHub", href: "https://github.com/Arandelle", icon: "github" },
-];
+// ── Blog Articles ──────────────────────────────────────────────────────────
 
 export interface Article {
   slug: string;
   title: string;
-  date: string; // ISO date
+  date: string;
   readingTime: string;
   excerpt: string;
-  content: string; // markdown
+  content: string;
 }
 
 export const articles: Article[] = [
@@ -157,25 +217,7 @@ export const articles: Article[] = [
     readingTime: "6 min read",
     excerpt:
       "The best systems are the ones nobody notices. A look at why restraint, not cleverness, is the mark of senior work.",
-    content: `## The best code is invisible
-
-There's a particular kind of pride that comes from a clever solution — the one-liner, the abstraction that handles every case. But after a decade of shipping software, I've come to believe that **cleverness is usually a liability**.
-
-Quiet engineering is about building things that get out of the way:
-
-- Code your teammates can read without you in the room.
-- Systems that fail loudly and recover gracefully.
-- Abstractions that earn their keep, and no more.
-
-> Simplicity is a feature you ship to your future self.
-
-### Three habits
-
-1. **Delete before you add.** The cheapest code to maintain is the code that doesn't exist.
-2. **Name things honestly.** A precise name is worth a paragraph of comments.
-3. **Optimize for change.** You will be wrong about the requirements. Make being wrong cheap.
-
-The engineers I admire most aren't the ones with the flashiest commits. They're the ones whose work you only notice when it's gone.`,
+    content: `## The best code is invisible\n\nThere's a particular kind of pride that comes from a clever solution — the one-liner, the abstraction that handles every case. But after a decade of shipping software, I've come to believe that **cleverness is usually a liability**.\n\nQuiet engineering is about building things that get out of the way:\n\n- Code your teammates can read without you in the room.\n- Systems that fail loudly and recover gracefully.\n- Abstractions that earn their keep, and no more.\n\n> Simplicity is a feature you ship to your future self.\n\n### Three habits\n\n1. **Delete before you add.** The cheapest code to maintain is the code that doesn't exist.\n2. **Name things honestly.** A precise name is worth a paragraph of comments.\n3. **Optimize for change.** You will be wrong about the requirements. Make being wrong cheap.\n\nThe engineers I admire most aren't the ones with the flashiest commits. They're the ones whose work you only notice when it's gone.`,
   },
   {
     slug: "designing-with-constraints",
@@ -184,26 +226,7 @@ The engineers I admire most aren't the ones with the flashiest commits. They're 
     readingTime: "5 min read",
     excerpt:
       "Constraints are not the enemy of good design — they are the substrate it grows from. Notes from building Atlas UI.",
-    content: `## Constraints are a gift
-
-When we started **Atlas UI**, the temptation was to support everything. Every theme, every variant, every edge case. We resisted, and the library is better for it.
-
-### What we said no to
-
-- Runtime theming via CSS-in-JS.
-- A configuration object for every component.
-- "Just one more" prop.
-
-Each \`no\` made the surface area smaller and the product sharper. A tight set of primitives composes further than a sprawling set of features.
-
-\`\`\`tsx
-// One primitive, composed — not a hundred props.
-<Button asChild>
-  <a href="/docs">Read the docs</a>
-</Button>
-\`\`\`
-
-Constraints force decisions, and decisions are what give a product a point of view.`,
+    content: `## Constraints are a gift\n\nWhen we started **Atlas UI**, the temptation was to support everything. Every theme, every variant, every edge case. We resisted, and the library is better for it.\n\n### What we said no to\n\n- Runtime theming via CSS-in-JS.\n- A configuration object for every component.\n- "Just one more" prop.\n\nEach \`no\` made the surface area smaller and the product sharper. A tight set of primitives composes further than a sprawling set of features.\n\n\`\`\`tsx\n// One primitive, composed — not a hundred props.\n<Button asChild>\n  <a href="/docs">Read the docs</a>\n</Button>\n\`\`\`\n\nConstraints force decisions, and decisions are what give a product a point of view.`,
   },
   {
     slug: "reading-the-stack",
@@ -212,26 +235,7 @@ Constraints force decisions, and decisions are what give a product a point of vi
     readingTime: "8 min read",
     excerpt:
       "Why the most valuable skill for a senior engineer is the willingness to follow a request all the way down.",
-    content: `## Follow the request down
-
-The fastest way to grow as an engineer is uncomfortable: **follow a single request from the browser all the way to the database and back**, refusing to wave your hands at any layer.
-
-When you do this honestly, you discover:
-
-- The cache you assumed was working isn't.
-- The "framework magic" is just a function you could have read.
-- The slow query has been slow for months.
-
-### A small exercise
-
-Pick one endpoint in your app. Trace it:
-
-1. The component that triggers it.
-2. The network call and its headers.
-3. The route handler and its middleware.
-4. The query, and the indexes it does (or doesn't) use.
-
-Most performance problems and most bugs live in the seams *between* these layers — exactly the places we're tempted to skip.`,
+    content: `## Follow the request down\n\nThe fastest way to grow as an engineer is uncomfortable: **follow a single request from the browser all the way to the database and back**, refusing to wave your hands at any layer.\n\nWhen you do this honestly, you discover:\n\n- The cache you assumed was working isn't.\n- The "framework magic" is just a function you could have read.\n- The slow query has been slow for months.\n\n### A small exercise\n\nPick one endpoint in your app. Trace it:\n\n1. The component that triggers it.\n2. The network call and its headers.\n3. The route handler and its middleware.\n4. The query, and the indexes it does (or doesn't) use.\n\nMost performance problems and most bugs live in the seams *between* these layers — exactly the places we're tempted to skip.`,
   },
   {
     slug: "mentoring-that-scales",
@@ -240,19 +244,27 @@ Most performance problems and most bugs live in the seams *between* these layers
     readingTime: "4 min read",
     excerpt:
       "Lessons from running a mentorship cohort: how to give feedback that compounds instead of feedback that fades.",
-    content: `## Feedback that compounds
+    content: `## Feedback that compounds\n\nRunning a mentorship cohort taught me that **most feedback evaporates** the moment it's given. The trick is to give feedback that teaches a *rule*, not just a fix.\n\n### Fix vs. rule\n\n- Fix: "Rename this variable to \`userCount\`."\n- Rule: "Names should let a reader predict the type and the meaning — \`count\` could be anything."\n\nThe fix solves today's problem. The rule solves the next hundred.\n\n> Teach the pattern, and you're no longer the bottleneck.\n\nThe goal of mentoring isn't to make people depend on you. It's to make yourself unnecessary, as quickly as you kindly can.`,
+  },
+];
 
-Running a mentorship cohort taught me that **most feedback evaporates** the moment it's given. The trick is to give feedback that teaches a *rule*, not just a fix.
+// ── Social Links ───────────────────────────────────────────────────────────
 
-### Fix vs. rule
+export interface SocialLink {
+  label: string;
+  href: string;
+  icon: "linkedin" | "github";
+}
 
-- Fix: "Rename this variable to \`userCount\`."
-- Rule: "Names should let a reader predict the type and the meaning — \`count\` could be anything."
-
-The fix solves today's problem. The rule solves the next hundred.
-
-> Teach the pattern, and you're no longer the bottleneck.
-
-The goal of mentoring isn't to make people depend on you. It's to make yourself unnecessary, as quickly as you kindly can.`,
+export const socials: SocialLink[] = [
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/arandelle-paguinto-588237285",
+    icon: "linkedin",
+  },
+  {
+    label: "GitHub",
+    href: "https://github.com/Arandelle",
+    icon: "github",
   },
 ];

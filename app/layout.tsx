@@ -22,7 +22,11 @@ const sourceSerif = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: "Arandelle",
-  description: "Profile — placeholder",
+  description:
+    "Arandelle Paguinto is a software engineer and fullstack web developer in the Philippines building fast, accessible products for the web.",
+  icons: {
+    icon: "/profile.svg",
+  },
 };
 
 export default function RootLayout({

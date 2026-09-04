@@ -1,50 +1,50 @@
 'use client'
 
-import Sidebar, { TabId } from "@/components/portfolio/Sidebar";
-import MobileNav from "@/components/portfolio/MobileNav";
-import TabContent from "@/components/portfolio/TabContent";
-import ChatButton from "@/components/portfolio/ChatButton";
-import { useState } from "react";
+import HeroSection from "@/components/portfolio/HeroSection";
+import AboutSection from "@/components/portfolio/AboutSection";
+import ExperienceSection from "@/components/portfolio/ExperienceSection";
+import ExpertiseSection from "@/components/portfolio/ExpertiseSection";
+import ProjectsSection from "@/components/portfolio/ProjectsSection";
+import CertificationsSection from "@/components/portfolio/CertificationsSection";
+import BlogSection from "@/components/portfolio/BlogSection";
+import ContactSection from "@/components/portfolio/ContactSection";
+import FloatingNav from "@/components/portfolio/FloatingNav";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabId>("about");
   return (
-    <div className="min-h-screen bg-background text-foreground antialiased transition-colors duration-500">
-      {/* Halftone accent — fades out radially */}
-      <div
-        className="halftone-bg pointer-events-none fixed inset-0 opacity-[0.07] dark:opacity-[0.05]"
-        style={{
-          maskImage:
-            "radial-gradient(ellipse at top right, black 20%, transparent 70%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse at top right, black 20%, transparent 70%)",
-        }}
-      />
+    <div className="relative min-h-screen bg-background text-ink antialiased transition-colors duration-500 overflow-x-hidden">
+      {/* Floating nav */}
+      <FloatingNav />
 
-      {/* Desktop sidebar */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Theme toggle - fixed top right */}
+      <div className="fixed top-6 right-6 z-50">
+        <ThemeToggle />
+      </div>
 
-      {/* Mobile nav */}
-      <MobileNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Main scroll content */}
+      <main>
+        <HeroSection />
+        <AboutSection />
+        <ExperienceSection />
+        <ExpertiseSection />
+        <ProjectsSection />
+        <CertificationsSection />
+        <BlogSection />
+        <ContactSection />
 
-      {/* Main content area */}
-      <main className="lg:ml-[14rem] min-h-screen pt-14 lg:pt-0">
-        <div className="mx-auto max-w-[42rem] px-4 sm:px-6 py-8 lg:py-16">
-          <TabContent activeTab={activeTab} />
-        </div>
-
-        {/* Footer — always visible */}
-        <div className="mx-auto max-w-[42rem] px-4 sm:px-6 pb-8 lg:pb-16">
-          <footer className="border-t border-gray-200 pt-8 transition-colors duration-500">
-            <p className="text-center font-mono-label text-[9px] uppercase tracking-[1px] text-gray-400">
-              © {new Date().getFullYear()} Arandelle Paguinto. All rights
-              reserved.
+        {/* Footer */}
+        <footer className="border-t border-gray-200 dark:border-gray-800 py-12 px-6 transition-colors duration-500">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="font-mono text-[11px] uppercase tracking-widest text-gray-400">
+              &copy; {new Date().getFullYear()} Arandelle Paguinto
             </p>
-          </footer>
-        </div>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-gray-400">
+              Built with passion
+            </p>
+          </div>
+        </footer>
       </main>
-
-      <ChatButton />
     </div>
   );
 }

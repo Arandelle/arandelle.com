@@ -53,12 +53,12 @@ const FloatingNav: React.FC = () => {
       }`}
       style={{ bottom: '2rem' }}
     >
-      <div className="flex items-center gap-1 rounded-full border border-gray-200 bg-white/90 px-2 py-2 shadow-lg backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90">
+      <div className="flex items-center gap-1 rounded-full border border-gray-200 bg-white/90 px-2 py-2 shadow-lg backdrop-blur-md dark:border-gray-200/40 dark:bg-gray-100/80 max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-none">
         {sections.map((section) => (
           <button
             key={section.id}
             onClick={() => scrollTo(section.id)}
-            className={`rounded-full px-4 py-2 font-mono text-[11px] uppercase tracking-wider transition-all duration-200 ${
+            className={`rounded-full px-3 py-2 sm:px-4 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
               activeSection === section.id
                 ? 'bg-ink text-background'
                 : 'text-gray-500 hover:text-ink dark:hover:text-gray-200'

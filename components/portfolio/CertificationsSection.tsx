@@ -40,7 +40,7 @@ const CertificationsSection: React.FC = () => {
               style={{ transitionDelay: `${200 + i * 100}ms` }}
             >
               {/* Icon */}
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+              <div className="shrink-0 w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                 <Award className="h-5 w-5 text-ink dark:text-gray-300" />
               </div>
 

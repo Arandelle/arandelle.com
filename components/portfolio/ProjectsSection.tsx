@@ -19,11 +19,6 @@ const ProjectsSection: React.FC = () => {
         <div className="absolute inset-0 bg-background transform -skew-y-2 origin-top-left" />
       </div>
 
-      {/* Angled bottom edge */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 overflow-hidden">
-        <div className="absolute inset-0 bg-background transform skew-y-2 origin-bottom-right" />
-      </div>
-
       <div className="relative max-w-6xl mx-auto pt-16 pb-16">
         {/* Section label */}
         <div className="reveal">

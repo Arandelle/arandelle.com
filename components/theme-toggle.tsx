@@ -1,7 +1,7 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
-import { useSyncExternalStore, useCallback } from "react";
+import { useSyncExternalStore, useCallback, useEffect } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -16,9 +16,12 @@ function getServerSnapshot(): Theme {
 function subscribe(callback: () => void) {
   window.addEventListener("storage", callback);
   window.addEventListener("theme-change", callback);
+  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  mql.addEventListener("change", callback);
   return () => {
     window.removeEventListener("storage", callback);
     window.removeEventListener("theme-change", callback);
+    mql.removeEventListener("change", callback);
   };
 }
 
@@ -29,27 +32,26 @@ export function ThemeToggle() {
     getServerSnapshot,
   );
 
-  const setTheme = useCallback((newTheme: Theme) => {
-    localStorage.setItem("theme", newTheme);
-    window.dispatchEvent(new Event("theme-change"));
-
-    let resolved: "light" | "dark";
-    if (newTheme === "system") {
-      resolved = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-    } else {
-      resolved = newTheme;
-    }
+  useEffect(() => {
+    const resolved =
+      theme === "system"
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light"
+        : theme;
 
     document.documentElement.classList.toggle("dark", resolved === "dark");
     document.documentElement.style.colorScheme =
       resolved === "dark" ? "dark" : "light";
+  }, [theme]);
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    localStorage.setItem("theme", newTheme);
+    window.dispatchEvent(new Event("theme-change"));
   }, []);
 
   return (
     <div className="flex items-center gap-2">
-      <span className="micro-label">theme</span>
       <div className="flex gap-1">
         {(
           [
@@ -61,7 +63,7 @@ export function ThemeToggle() {
           <button
             key={value}
             onClick={() => setTheme(value)}
-            className={`flex items-center justify-center h-7 w-7 rounded-md border transition-colors duration-200 ${
+            className={`flex items-center justify-center h-7 w-7 rounded-md border transition-colors duration-200 cursor-pointer ${
               theme === value
                 ? "border-foreground text-foreground"
                 : "border-gray-200 text-gray-400 hover:border-gray-300 hover:text-foreground"

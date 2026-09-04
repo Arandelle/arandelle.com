@@ -14,15 +14,13 @@ const BlogSection: React.FC = () => {
     <section
       id="blog"
       ref={ref}
-      className="relative py-32 sm:py-40 px-6 sm:px-12 lg:px-20 bg-gray-50 dark:bg-gray-900/50"
+      className="relative py-32 sm:py-40 px-6 sm:px-12 lg:px-20 bg-gray-50/80 dark:bg-white/[0.02]"
     >
-      {/* Angled top edge */}
-      <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-background to-transparent" />
-
+  
       <div className="relative max-w-6xl mx-auto">
         {/* Section label */}
         <div className="reveal">
-          <span className="font-mono text-[11px] uppercase tracking-widest text-gray-400">
+          <span className="font-mono text-[11px] uppercase tracking-widest text-gray-400 dark:text-gray-500">
             06 — Blog
           </span>
         </div>
@@ -44,7 +42,7 @@ const BlogSection: React.FC = () => {
               className="reveal group w-full text-left"
               style={{ transitionDelay: `${200 + i * 100}ms` }}
             >
-              <div className="relative rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 transition-all hover:border-gray-400 dark:hover:border-gray-600">
+              <div className="relative rounded-2xl border border-gray-200 dark:border-gray-200/40 bg-white dark:bg-gray-100/60 p-8 transition-all hover:border-gray-400 dark:hover:border-gray-300">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex-1">
                     {/* Meta */}
@@ -85,13 +83,13 @@ const BlogSection: React.FC = () => {
           onClick={() => setSelectedArticle(null)}
         >
           <div
-            className="relative w-full max-w-3xl max-h-[80vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-8 sm:p-12"
+            className="relative w-full max-w-3xl max-h-[80vh] overflow-y-auto rounded-2xl bg-white dark:bg-gray-100 p-8 sm:p-12"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
             <button
               onClick={() => setSelectedArticle(null)}
-              className="absolute top-4 right-4 w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="absolute top-4 right-4 w-10 h-10 rounded-full border border-gray-200 dark:border-gray-200/40 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-200/40 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>

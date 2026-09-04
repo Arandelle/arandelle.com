@@ -96,7 +96,7 @@ export const timeline: TimelineItem[] = [
   {
     title: "Fullstack Web Developer",
     org: "JPSC Group Holdings Inc.",
-    startDate: "2025",
+    startDate: "2026",
     endDate: "Present",
   },
   {
@@ -118,7 +118,6 @@ export const expertise: ExpertiseGroup[] = [
   {
     heading: "Programming",
     skills: [
-      "Laravel",
       "JavaScript / TypeScript",
       "React.js & Tailwind CSS",
       "Next.js",
@@ -137,11 +136,10 @@ export const expertise: ExpertiseGroup[] = [
   {
     heading: "Systems",
     skills: [
-      "GoHighLevel",
-      "RoboFlow",
+      "Cloud Hosting",
       "Git & GitHub Version Control",
       "Computer System Servicing",
-      "API Testing with Postman",
+      "Docker",
     ],
   },
 ];

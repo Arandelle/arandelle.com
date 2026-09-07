@@ -2,10 +2,19 @@
 
 import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { projects } from '@/lib/data';
 import { useReveal } from '@/lib/useReveal';
 
-const ProjectsSection: React.FC = () => {
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  image: string | null;
+  tags: string[];
+  featured: boolean;
+}
+
+const ProjectsSection: React.FC<{ projects: Project[] }> = ({ projects }) => {
   const ref = useReveal();
 
   return (
@@ -40,7 +49,7 @@ const ProjectsSection: React.FC = () => {
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((project, i) => (
             <a
-              key={project.name}
+              key={project.id}
               href={project.url}
               target="_blank"
               rel="noopener noreferrer"

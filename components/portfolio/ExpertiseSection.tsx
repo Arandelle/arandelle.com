@@ -1,10 +1,16 @@
 'use client';
 
 import React from 'react';
-import { expertise } from '@/lib/data';
 import { useReveal } from '@/lib/useReveal';
 
-const ExpertiseSection: React.FC = () => {
+interface Expertise {
+  id: string;
+  name: string;
+  skills: string[];
+  order: number;
+}
+
+const ExpertiseSection: React.FC<{ expertise: Expertise[] }> = ({ expertise }) => {
   const ref = useReveal();
 
   return (
@@ -41,7 +47,7 @@ const ExpertiseSection: React.FC = () => {
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
           {expertise.map((group, i) => (
             <div
-              key={group.heading}
+              key={group.id}
               className="reveal"
               style={{ transitionDelay: `${200 + i * 100}ms` }}
             >
@@ -51,12 +57,12 @@ const ExpertiseSection: React.FC = () => {
                   {String(i + 1).padStart(2, '0')}
                 </span>
 
-                <h3 className="text-xl font-bold mb-6">{group.heading}</h3>
+                <h3 className="text-xl font-bold mb-6">{group.name}</h3>
 
                 <ul className="space-y-3">
-                  {group.skills.map((skill) => (
+                  {group.skills.map((skill, si) => (
                     <li
-                      key={skill}
+                      key={si}
                       className="flex items-center gap-3 text-gray-600 dark:text-gray-400"
                     >
                       <span className="h-1 w-1 rounded-full bg-ink dark:bg-gray-400" />
@@ -80,7 +86,7 @@ const ExpertiseSection: React.FC = () => {
                     className="display-text text-3xl sm:text-4xl md:text-5xl text-gray-200 dark:text-gray-800"
                   >
                     {skill}
-                    <span className="mx-4 text-gray-300 dark:text-gray-700">•</span>
+                    <span className="mx-4 text-gray-300 dark:text-gray-700">&bull;</span>
                   </span>
                 ))}
               </div>

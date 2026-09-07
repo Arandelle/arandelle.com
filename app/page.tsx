@@ -1,5 +1,4 @@
-'use client'
-
+import { getProjects, getExperiences, getCertifications, getPublishedArticles, getExpertise } from '@/lib/content';
 import HeroSection from "@/components/portfolio/HeroSection";
 import AboutSection from "@/components/portfolio/AboutSection";
 import ExperienceSection from "@/components/portfolio/ExperienceSection";
@@ -11,7 +10,16 @@ import ContactSection from "@/components/portfolio/ContactSection";
 import FloatingNav from "@/components/portfolio/FloatingNav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export default function Home() {
+export default async function Home() {
+  // Fetch all content from database in parallel
+  const [projects, experiences, certifications, articles, expertise] = await Promise.all([
+    getProjects(),
+    getExperiences(),
+    getCertifications(),
+    getPublishedArticles(),
+    getExpertise(),
+  ]);
+
   return (
     <div className="relative min-h-screen bg-background text-ink antialiased transition-colors duration-500 overflow-x-hidden">
       {/* Floating nav */}
@@ -26,11 +34,11 @@ export default function Home() {
       <main>
         <HeroSection />
         <AboutSection />
-        <ExperienceSection />
-        <ExpertiseSection />
-        <ProjectsSection />
-        <CertificationsSection />
-        <BlogSection />
+        <ExperienceSection experiences={experiences} />
+        <ExpertiseSection expertise={expertise} />
+        <ProjectsSection projects={projects} />
+        <CertificationsSection certifications={certifications} />
+        <BlogSection articles={articles} />
         <ContactSection />
 
         {/* Footer */}

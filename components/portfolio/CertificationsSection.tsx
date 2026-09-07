@@ -1,11 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Award } from 'lucide-react';
-import { certifications } from '@/lib/data';
+import { Award, ArrowUpRight } from 'lucide-react';
 import { useReveal } from '@/lib/useReveal';
 
-const CertificationsSection: React.FC = () => {
+interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  url: string | null;
+  date: string | null;
+}
+
+const CertificationsSection: React.FC<{ certifications: Certification[] }> = ({ certifications }) => {
   const ref = useReveal();
 
   return (
@@ -34,8 +41,10 @@ const CertificationsSection: React.FC = () => {
         <div className="mt-16 space-y-4">
           {certifications.map((cert, i) => (
             <a
-              key={cert.name}
-              href={cert.url}
+              key={cert.id}
+              href={cert.url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
               className="reveal group flex items-center gap-6 rounded-xl border border-gray-200 dark:border-gray-800 p-6 hover-lift"
               style={{ transitionDelay: `${200 + i * 100}ms` }}
             >
@@ -60,7 +69,7 @@ const CertificationsSection: React.FC = () => {
               </div>
 
               {/* Arrow */}
-              <ArrowIcon className="h-5 w-5 text-gray-400 group-hover:text-ink dark:group-hover:text-white transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight className="h-5 w-5 text-gray-400 group-hover:text-ink dark:group-hover:text-white transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </a>
           ))}
         </div>
@@ -68,22 +77,5 @@ const CertificationsSection: React.FC = () => {
     </section>
   );
 };
-
-// Simple arrow icon component
-const ArrowIcon = ({ className }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M7 17L17 7M17 7H7M17 7v10"
-    />
-  </svg>
-);
 
 export default CertificationsSection;

@@ -2,13 +2,38 @@
 
 import React, { useState } from 'react';
 import { ArrowUpRight, X } from 'lucide-react';
-import { articles } from '@/lib/data';
-import type { Article } from '@/lib/data';
 import { useReveal } from '@/lib/useReveal';
 
-const BlogSection: React.FC = () => {
+interface Article {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  published: boolean;
+  date: string;
+}
+
+const BlogSection: React.FC<{ articles: Article[] }> = ({ articles }) => {
   const ref = useReveal();
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+
+  // Simple markdown-to-HTML renderer
+  const renderMarkdown = (content: string) => {
+    return content
+      .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+      .replace(/^\> (.*$)/gm, '<blockquote class="border-l-2 border-gray-300 dark:border-gray-600 pl-4 italic text-gray-600 dark:text-gray-400">$1</blockquote>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono">$1</code>')
+      .replace(/^- (.*$)/gm, '<li class="ml-4 list-disc">$1</li>')
+      .replace(/^(\d+)\. (.*$)/gm, '<li class="ml-4 list-decimal">$2</li>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<[hbl])/gm, '<p>')
+      .replace(/<\/li>\n<li>/g, '</li><li>');
+  };
 
   return (
     <section
@@ -16,7 +41,6 @@ const BlogSection: React.FC = () => {
       ref={ref}
       className="relative py-32 sm:py-40 px-6 sm:px-12 lg:px-20 bg-gray-50/80 dark:bg-white/[0.02]"
     >
-  
       <div className="relative max-w-6xl mx-auto">
         {/* Section label */}
         <div className="reveal">
@@ -47,14 +71,7 @@ const BlogSection: React.FC = () => {
                   <div className="flex-1">
                     {/* Meta */}
                     <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-gray-400">
-                      <span>
-                        {new Date(article.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                        })}
-                      </span>
-                      <span>·</span>
-                      <span>{article.readingTime}</span>
+                      <span>{article.date}</span>
                     </div>
 
                     {/* Title */}
@@ -96,15 +113,7 @@ const BlogSection: React.FC = () => {
 
             {/* Meta */}
             <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-wider text-gray-400">
-              <span>
-                {new Date(selectedArticle.date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
-              <span>·</span>
-              <span>{selectedArticle.readingTime}</span>
+              <span>{selectedArticle.date}</span>
             </div>
 
             {/* Title */}
@@ -113,24 +122,10 @@ const BlogSection: React.FC = () => {
             </h2>
 
             {/* Content */}
-            <div className="mt-8 prose prose-gray dark:prose-invert max-w-none">
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: selectedArticle.content
-                    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-                    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-                    .replace(/^\> (.*$)/gm, '<blockquote>$1</blockquote>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                    .replace(/`(.*?)`/g, '<code>$1</code>')
-                    .replace(/^- (.*$)/gm, '<li>$1</li>')
-                    .replace(/^(\d+)\. (.*$)/gm, '<li>$2</li>')
-                    .replace(/\n\n/g, '</p><p>')
-                    .replace(/^(?!<[hbl])/gm, '<p>')
-                    .replace(/<\/li>\n<li>/g, '</li><li>'),
-                }}
-              />
-            </div>
+            <div
+              className="mt-8 prose prose-gray dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedArticle.content) }}
+            />
           </div>
         </div>
       )}

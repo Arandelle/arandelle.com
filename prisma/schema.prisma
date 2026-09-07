@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more here: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // bcrypt hashed
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  url         String
+  image       String?
+  tags        String[] // array of tag strings
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Experience {
+  id          String   @id @default(cuid())
+  company     String
+  role        String
+  description String
+  startDate   String   // "Jan 2024" format
+  endDate     String?  // "Present" or "Dec 2024"
+  current     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Certification {
+  id        String   @id @default(cuid())
+  name      String
+  issuer    String
+  url       String?
+  date      String   // "Mar 2024" format
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  excerpt   String
+  content   String   // MDX content
+  published Boolean  @default(false)
+  date      String   // "Feb 15, 2024" format
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expertise {
+  id        String   @id @default(cuid())
+  name      String   // "Frontend", "Backend", etc.
+  skills    String[] // array of skill strings
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

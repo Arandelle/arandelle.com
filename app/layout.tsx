@@ -13,6 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Geist Pixel Square - using Geist Mono as fallback (per bryl-minimal spec)
+// If you have the Geist Pixel Square woff2, add it here via local()
+const geistPixel = Geist_Mono({
+  variable: "--font-geist-pixel",
+  subsets: ["latin"],
+});
+
 const sourceSerif = Source_Serif_4({
   variable: "--font-source-serif",
   subsets: ["latin"],
@@ -40,7 +47,7 @@ export default function RootLayout({
         <ThemeScript />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} min-h-full flex flex-col antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${geistPixel.variable} ${sourceSerif.variable} min-h-full flex flex-col antialiased`}
       >
         {children}
       </body>

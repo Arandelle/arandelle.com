@@ -8,5 +8,9 @@ export function ThemeScript() {
   document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
 })();
 `;
-  return <script dangerouslySetInnerHTML={{ __html: script }} />;
+  // Using <template> to suppress the React script-in-SSR warning,
+  // while still executing the script on the client during hydration.
+  return (
+    <template dangerouslySetInnerHTML={{ __html: `<script>${script}</script>` }} />
+  );
 }

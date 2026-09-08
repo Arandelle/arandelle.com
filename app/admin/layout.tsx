@@ -30,6 +30,8 @@ export default function AdminLayout({
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isLoginPage = pathname === '/admin/login';
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -37,17 +39,22 @@ export default function AdminLayout({
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-        } else {
+          if (isLoginPage) {
+            router.push('/admin');
+          }
+        } else if (!isLoginPage) {
           router.push('/admin/login');
         }
       } catch {
-        router.push('/admin/login');
+        if (!isLoginPage) {
+          router.push('/admin/login');
+        }
       } finally {
         setLoading(false);
       }
     };
     checkAuth();
-  }, [router]);
+  }, [router, isLoginPage]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -61,6 +68,10 @@ export default function AdminLayout({
         <p className="text-sm font-mono text-gray-500">Loading...</p>
       </div>
     );
+  }
+
+  if (isLoginPage) {
+    return <>{children}</>;
   }
 
   if (!user) {

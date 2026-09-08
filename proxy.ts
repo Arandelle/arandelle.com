@@ -4,7 +4,7 @@ import { verifyToken } from '@/lib/auth';
 const ADMIN_SUBDOMAIN = process.env.ADMIN_SUBDOMAIN || 'dev';
 const PROTECTED_PREFIXES = ['/admin'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get('host') || '';
   const pathname = url.pathname;

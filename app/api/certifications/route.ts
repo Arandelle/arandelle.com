@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getAuthenticatedAdmin } from '@/lib/auth-middleware';
 import { certificationSchema } from '@/lib/validation';
@@ -29,5 +30,6 @@ export async function POST(request: NextRequest) {
   const certification = await prisma.certification.create({
     data: validation.data,
   });
+  revalidatePath('/');
   return NextResponse.json(certification, { status: 201 });
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getAuthenticatedAdmin } from '@/lib/auth-middleware';
 import { projectSchema } from '@/lib/validation';
@@ -44,6 +45,7 @@ export async function PUT(
     data: validation.data,
   });
 
+  revalidatePath('/');
   return NextResponse.json(project);
 }
 
@@ -60,5 +62,6 @@ export async function DELETE(
   const { id } = await params;
   await prisma.project.delete({ where: { id } });
 
+  revalidatePath('/');
   return NextResponse.json({ success: true });
 }

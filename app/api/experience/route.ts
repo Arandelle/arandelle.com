@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { getAuthenticatedAdmin } from '@/lib/auth-middleware';
 import { experienceSchema } from '@/lib/validation';
@@ -27,5 +28,6 @@ export async function POST(request: NextRequest) {
   }
 
   const experience = await prisma.experience.create({ data: validation.data });
+  revalidatePath('/');
   return NextResponse.json(experience, { status: 201 });
 }

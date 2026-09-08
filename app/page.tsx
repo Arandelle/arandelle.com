@@ -10,6 +10,8 @@ import ContactSection from "@/components/portfolio/ContactSection";
 import FloatingNav from "@/components/portfolio/FloatingNav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+export const  = 60;
+
 export default async function Home() {
   // Fetch all content from database in parallel
   const [projects, experiences, certifications, articles, expertise] = await Promise.all([

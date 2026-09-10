@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { ExternalLink, MapPin, Calendar } from "lucide-react";
 import { usePortfolio } from "../context";
 import { Welcome } from "./welcome";
+import AsciiPortrait from "@/components/portfolio/AsciiPortrait";
 import {
   projects as staticProjects,
   articles as staticArticles,
@@ -110,6 +111,15 @@ function AboutRenderer({
   return (
     <div className="max-w-[700px]">
       <FileHeader name="about.tsx" />
+
+      {/* ASCII Portrait */}
+      <div className="mb-8 p-4 bg-[var(--vscode-input-bg,#2a2a2a)] border border-[var(--vscode-border)] rounded">
+        <div className="flex items-center gap-2 mb-3 text-[11px] font-mono text-[var(--vscode-text-muted)]">
+          <span className="text-[var(--vscode-accent,#569cd6)]">$</span>
+          <span>cat portrait.ascii</span>
+        </div>
+        <AsciiPortrait width={50} />
+      </div>
 
       <div className="mb-8">
         <CodeLabel>{"// "}</CodeLabel>

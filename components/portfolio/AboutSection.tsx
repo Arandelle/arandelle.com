@@ -3,6 +3,7 @@
 import React from 'react';
 import { profile, AVATAR_URL } from '@/lib/data';
 import { useReveal } from '@/lib/useReveal';
+import AsciiPortrait from '@/components/portfolio/AsciiPortrait';
 
 const AboutSection: React.FC = () => {
   const ref = useReveal();
@@ -32,9 +33,10 @@ const AboutSection: React.FC = () => {
 
         {/* Content grid */}
         <div className="mt-16 grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Avatar + meta */}
+          {/* Avatar + ASCII portrait + meta */}
           <div className="lg:col-span-4 reveal" style={{ transitionDelay: '200ms' }}>
-            <div className="sticky top-24">
+            <div className="sticky top-24 space-y-6">
+              {/* Photo */}
               <div className="relative">
                 <div className="absolute -inset-4 bg-ink/5 dark:bg-ink/10 rounded-2xl rotate-3" />
                 <img
@@ -43,7 +45,17 @@ const AboutSection: React.FC = () => {
                   className="relative w-full max-w-[280px] aspect-square object-cover rounded-2xl border border-gray-200 dark:border-gray-800"
                 />
               </div>
-              <div className="mt-6 space-y-3">
+
+              {/* ASCII portrait accent */}
+              <div className="relative border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-gray-50 dark:bg-gray-900 overflow-hidden">
+                <AsciiPortrait width={48} />
+                <p className="mt-2 font-mono text-[9px] uppercase tracking-widest text-gray-400 text-center">
+                  rendered in ascii
+                </p>
+              </div>
+
+              {/* Meta */}
+              <div className="space-y-3">
                 <div>
                   <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400">
                     Name

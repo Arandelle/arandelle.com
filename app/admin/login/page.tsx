@@ -7,8 +7,7 @@ import { loginSchema, LoginInput } from '@/lib/validation';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/admin';
-
+  const redirect = searchParams.get('redirect') || '/'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

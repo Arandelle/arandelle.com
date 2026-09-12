@@ -1,66 +1,53 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { verifyToken } from "@/lib/auth";
 
-const ADMIN_SUBDOMAIN = process.env.ADMIN_SUBDOMAIN || 'dev';
-const PROTECTED_PREFIXES = ['/admin'];
+const ADMIN_SUBDOMAIN = process.env.ADMIN_SUBDOMAIN || "dev";
+const PUBLIC_PATHS = ["/login"];
+
+export const isAuthenticated = (request: NextRequest) => {
+  const token = request.cookies.get("auth-token")?.value;
+  if (!token) return false;
+  return !!verifyToken(token);
+};
 
 export function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
-  const hostname = request.headers.get('host') || '';
+  const hostname = request.headers.get("host") || "";
   const pathname = url.pathname;
 
-  // Check if request is from admin subdomain
-  const isSubdomain = hostname.startsWith(`${ADMIN_SUBDOMAIN}.`);
+  const subdomain = hostname.split(".")[0];
 
-  // ─── Subdomain Routing: dev.* → /admin/* ─────────────────────────
-  if (isSubdomain) {
-    // Redirect root to /admin
-    if (pathname === '/') {
-      url.pathname = '/admin';
-      return NextResponse.rewrite(url);
+  if (subdomain !== ADMIN_SUBDOMAIN) {
+    return NextResponse.next();
+  }
+
+  const authenticated = isAuthenticated(request);
+  const isPublicPath = PUBLIC_PATHS.includes(pathname);
+
+  // Public routes (e.g. /login): redirect authenticated users to dashboard
+  if (isPublicPath) {
+    if (authenticated) {
+      return NextResponse.redirect(new URL("/", request.url));
     }
-
-    // Rewrite all subdomain requests to /admin/*
+    // Allow unauthenticated access to public paths, rewrite to /admin/login
     url.pathname = `/admin${pathname}`;
     return NextResponse.rewrite(url);
   }
 
-  // ─── Auth Protection for /admin/* routes ──────────────────────────
-  const isProtectedRoute = PROTECTED_PREFIXES.some((prefix) =>
-    pathname.startsWith(prefix)
-  );
-
-  if (isProtectedRoute) {
-    const token = request.cookies.get('auth-token')?.value;
-    const isAuthenticated = token && verifyToken(token);
-
-    // Redirect to login if not authenticated
-    if (!isAuthenticated && !pathname.startsWith('/admin/login')) {
-      url.pathname = '/admin/login';
-      url.search = `?redirect=${encodeURIComponent(pathname)}`;
-      return NextResponse.redirect(url);
-    }
-
-    // Redirect authenticated users away from login to dashboard
-    if (isAuthenticated && pathname.startsWith('/admin/login')) {
-      url.pathname = '/admin';
-      return NextResponse.redirect(url);
-    }
+  // Protected routes: redirect unauthenticated users to login
+  if (!authenticated) {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    response.cookies.delete("auth-token");
+    return response;
   }
 
-  return NextResponse.next();
+  // Authenticated + protected route: rewrite to /admin folder
+  url.pathname = `/admin${pathname}`;
+  return NextResponse.rewrite(url);
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (public/*)
-     * - API routes that don't need auth
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/auth/login|api/auth/logout).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*|api).*)",
   ],
 };

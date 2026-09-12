@@ -46,11 +46,11 @@ export default function AdminDashboard() {
 
   const statCards = stats
     ? [
-        { label: 'Projects', count: stats.projects, href: '/admin/projects', icon: '📁' },
-        { label: 'Experience', count: stats.experiences, href: '/admin/experience', icon: '💼' },
-        { label: 'Certifications', count: stats.certifications, href: '/admin/certifications', icon: '🏆' },
-        { label: 'Articles', count: stats.articles, href: '/admin/articles', icon: '📝' },
-        { label: 'Expertise', count: stats.expertise, href: '/admin/expertise', icon: '🛠️' },
+        { label: 'Projects', count: stats.projects, href: '/projects', icon: '📁' },
+        { label: 'Experience', count: stats.experiences, href: '/experience', icon: '💼' },
+        { label: 'Certifications', count: stats.certifications, href: '/certifications', icon: '🏆' },
+        { label: 'Articles', count: stats.articles, href: '/articles', icon: '📝' },
+        { label: 'Expertise', count: stats.expertise, href: '/expertise', icon: '🛠️' },
       ]
     : [];
 

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface AdminUser {
   id: string;
@@ -12,12 +12,12 @@ interface AdminUser {
 }
 
 const navItems = [
-  { label: 'Dashboard', href: '/admin', icon: '📊' },
-  { label: 'Projects', href: '/admin/projects', icon: '📁' },
-  { label: 'Experience', href: '/admin/experience', icon: '💼' },
-  { label: 'Certifications', href: '/admin/certifications', icon: '🏆' },
-  { label: 'Articles', href: '/admin/articles', icon: '📝' },
-  { label: 'Expertise', href: '/admin/expertise', icon: '🛠️' },
+  { label: "Dashboard", href: "/", icon: "📊" },
+  { label: "Projects", href: "/projects", icon: "📁" },
+  { label: "Experience", href: "/experience", icon: "💼" },
+  { label: "Certifications", href: "/certifications", icon: "🏆" },
+  { label: "Articles", href: "/articles", icon: "📝" },
+  { label: "Expertise", href: "/expertise", icon: "🛠️" },
 ];
 
 export default function AdminLayout({
@@ -30,24 +30,24 @@ export default function AdminLayout({
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isLoginPage = pathname === '/admin/login';
+  const isLoginPage = pathname === "/login";
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/auth/verify');
+        const res = await fetch("/api/auth/verify");
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
           if (isLoginPage) {
-            router.push('/admin');
+            router.push("/");
           }
         } else if (!isLoginPage) {
-          router.push('/admin/login');
+          router.push("/login");
         }
       } catch {
         if (!isLoginPage) {
-          router.push('/admin/login');
+          router.push("/login");
         }
       } finally {
         setLoading(false);
@@ -57,8 +57,8 @@ export default function AdminLayout({
   }, [router, isLoginPage]);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin/login');
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
     router.refresh();
   };
 
@@ -92,8 +92,8 @@ export default function AdminLayout({
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const isActive =
-              item.href === '/admin'
-                ? pathname === '/admin'
+              item.href === "/"
+                ? pathname === "/"
                 : pathname?.startsWith(item.href);
             return (
               <Link
@@ -101,8 +101,8 @@ export default function AdminLayout({
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-gray-100 dark:bg-gray-800 text-ink dark:text-gray-100 font-medium'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    ? "bg-gray-100 dark:bg-gray-800 text-ink dark:text-gray-100 font-medium"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 }`}
               >
                 <span>{item.icon}</span>

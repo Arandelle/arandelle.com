@@ -29,24 +29,24 @@ function IDEShell() {
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
   return (
-    <div className="vscode-ide flex">
-      {/* Activity bar — full height, far left */}
-      <ActivityBar />
-
-      {/* Sidebar — full height */}
-      <Sidebar />
-
-      {/* Editor + terminal + statusbar stacked */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex flex-1 flex-col min-h-0">
-          <TabBar />
-          <Editor />
+    <div className="vscode-ide flex flex-col">
+      <div className="flex flex-1">
+        {/* Activity bar — full height, far left */}
+        <ActivityBar />
+        {/* Sidebar — full height */}
+        <Sidebar />
+        {/* Editor + terminal + statusbar stacked */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex flex-1 flex-col min-h-0">
+            <TabBar />
+            <Editor />
+          </div>
+          {/* Bottom panel — only under the editor */}
+          <BottomPanel />
         </div>
+      </div>
 
-        {/* Bottom panel — only under the editor */}
-        <BottomPanel />
-
-        {/* Status bar */}
+              {/* Status bar */}
         <div className="h-[var(--statusbar-height)] bg-[var(--vscode-statusbar-bg)] flex items-center px-3 text-[11px] text-white/90 shrink-0 gap-4">
           <div className="flex items-center gap-1.5">
             <GitBranch size={12} />
@@ -68,7 +68,6 @@ function IDEShell() {
             <span className="opacity-70">portfolio v1.0</span>
           </div>
         </div>
-      </div>
 
       {chatOpen && <ChatPanel />}
     </div>

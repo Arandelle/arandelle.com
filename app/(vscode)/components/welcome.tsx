@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Code2, ArrowUpRight } from "lucide-react";
-import { usePortfolio } from "../context";
+import { usePortfolio } from "@/context/vscode-context";
 import { FileCode2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
@@ -89,7 +89,7 @@ export function Welcome() {
           {/* v0 link */}
           <div className="pt-3 border-t border-[var(--vscode-border)] mt-3">
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/me")}
               className="flex items-center gap-3 text-[13px] text-[var(--vscode-text)] hover:text-[var(--vscode-accent-hover)] transition-colors"
             >
               <ArrowUpRight size={14} style={{ color: "#569cd6" }} strokeWidth={1.5} />

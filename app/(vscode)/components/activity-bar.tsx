@@ -7,7 +7,7 @@ import {
   MessageSquare,
   Blocks,
 } from "lucide-react";
-import { usePortfolio } from "../context";
+import { usePortfolio } from "@/context/vscode-context";
 import type { SidebarPanel } from "../types";
 
 const ACTIVITIES: {

@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { usePortfolio } from "../context";
+import { usePortfolio } from "@/context/vscode-context";
 
 export function TabBar() {
   const { openTabs, activeTabId, setActiveTab, closeTab } = usePortfolio();

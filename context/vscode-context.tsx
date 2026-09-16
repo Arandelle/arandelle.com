@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import type { Tab, FileId, SidebarPanel, PortfolioData } from "./types";
+import type { Tab, FileId, SidebarPanel, PortfolioData } from "@/app/(vscode)/types";
 
 interface PortfolioContextValue {
   openTabs: Tab[];

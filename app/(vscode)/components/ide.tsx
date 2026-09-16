@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { GitBranch, Circle } from "lucide-react";
-import { PortfolioProvider, usePortfolio } from "../context";
+import { PortfolioProvider, usePortfolio } from "@/context/vscode-context";
 import { ActivityBar } from "./activity-bar";
 import { Sidebar } from "./sidebar";
 import { TabBar } from "./tab-bar";
@@ -37,39 +37,43 @@ function IDEShell() {
         <Sidebar />
         {/* Editor + terminal + statusbar stacked */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex flex-1 flex-col min-h-0">
-            <TabBar />
-            <Editor />
+          <div className="flex flex-1">
+            <div className="flex flex-1 flex-col min-h-0">
+              <TabBar />
+              <Editor />
+            </div>
+            {chatOpen && <ChatPanel />}
           </div>
+
           {/* Bottom panel — only under the editor */}
           <BottomPanel />
         </div>
       </div>
 
-              {/* Status bar */}
-        <div className="h-[var(--statusbar-height)] bg-[var(--vscode-statusbar-bg)] flex items-center px-3 text-[11px] text-white/90 shrink-0 gap-4">
-          <div className="flex items-center gap-1.5">
-            <GitBranch size={12} />
-            <span>main</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Circle size={8} className="fill-current" />
-            <span>0 errors</span>
-          </div>
-          <div className="ml-auto flex items-center gap-4">
-            {activeTab && (
-              <>
-                <span>Ln 1, Col 1</span>
-                <span>Spaces: 2</span>
-                <span>UTF-8</span>
-                <span>{activeTab.name.endsWith(".tsx") ? "TypeScript React" : "MDX"}</span>
-              </>
-            )}
-            <span className="opacity-70">portfolio v1.0</span>
-          </div>
+      {/* Status bar */}
+      <div className="h-[var(--statusbar-height)] bg-[var(--vscode-statusbar-bg)] flex items-center px-3 text-[11px] text-white/90 shrink-0 gap-4">
+        <div className="flex items-center gap-1.5">
+          <GitBranch size={12} />
+          <span>main</span>
         </div>
-
-      {chatOpen && <ChatPanel />}
+        <div className="flex items-center gap-1.5">
+          <Circle size={8} className="fill-current" />
+          <span>0 errors</span>
+        </div>
+        <div className="ml-auto flex items-center gap-4">
+          {activeTab && (
+            <>
+              <span>Ln 1, Col 1</span>
+              <span>Spaces: 2</span>
+              <span>UTF-8</span>
+              <span>
+                {activeTab.name.endsWith(".tsx") ? "TypeScript React" : "MDX"}
+              </span>
+            </>
+          )}
+          <span className="opacity-70">portfolio v1.0</span>
+        </div>
+      </div>
     </div>
   );
 }

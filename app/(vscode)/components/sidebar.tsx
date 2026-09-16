@@ -14,7 +14,7 @@ import {
   Monitor,
   Palette,
 } from "lucide-react";
-import { usePortfolio } from "../context";
+import { usePortfolio } from "@/context/vscode-context";
 import {
   projects as staticProjects,
   articles as staticArticles,

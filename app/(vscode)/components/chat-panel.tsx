@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot, User } from "lucide-react";
-import { usePortfolio } from "../context";
+import { usePortfolio } from "@/context/vscode-context";
 
 interface Message {
   role: "user" | "assistant";

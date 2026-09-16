@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ExternalLink, MapPin, Calendar } from "lucide-react";
-import { usePortfolio } from "../context";
+import { usePortfolio } from "@/context/vscode-context";
 import { Welcome } from "./welcome";
 import AsciiPortrait from "@/components/portfolio/AsciiPortrait";
 import {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Bot, User } from "lucide-react";
+import { X, Send, Bot, User, MessageSquare, ChevronRight } from "lucide-react";
 import { usePortfolio } from "@/context/vscode-context";
 
 interface Message {
@@ -10,7 +10,7 @@ interface Message {
 }
 
 export function ChatPanel() {
-  const { closeChat, data } = usePortfolio();
+  const { closeChat, data, chatExpanded, toggleChatExpand } = usePortfolio();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -75,77 +75,106 @@ export function ChatPanel() {
   }, [closeChat]);
 
   return (
-    <div className="w-[320px] sm:w-[360px] bg-[var(--vscode-sidebar-bg)] border-l border-[var(--vscode-border)] flex flex-col shrink-0">
+    <div 
+      className={`bg-[var(--vscode-sidebar-bg)] border-l border-[var(--vscode-border)] flex flex-col shrink-0 transition-all duration-200 ${
+        chatExpanded ? "w-[320px] sm:w-[360px]" : "w-[48px]"
+      }`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--vscode-border)]">
-        <div className="flex items-center gap-2">
-          <Bot size={16} className="text-[var(--vscode-accent)]" />
-          <span className="text-[13px] font-medium text-[var(--vscode-text-bright)]">
-            AI Chat
-          </span>
-        </div>
-        <button
-          onClick={closeChat}
-          className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] transition-colors"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-          >
-            <div
-              className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
-                msg.role === "assistant"
-                  ? "bg-[var(--vscode-accent)]"
-                  : "bg-[var(--vscode-badge-bg)]"
-              }`}
-            >
-              {msg.role === "assistant" ? (
-                <Bot size={12} className="text-white" />
-              ) : (
-                <User size={12} className="text-white" />
-              )}
-            </div>
-            <div
-              className={`text-[13px] leading-relaxed max-w-[80%] rounded-lg px-3 py-2 ${
-                msg.role === "assistant"
-                  ? "bg-[var(--vscode-input-bg)] text-[var(--vscode-text)]"
-                  : "bg-[var(--vscode-accent)] text-white"
-              }`}
-            >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Input */}
-      <form
-        onSubmit={handleSubmit}
-        className="p-3 border-t border-[var(--vscode-border)]"
-      >
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about Arandelle..."
-            className="flex-1 px-3 py-2 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-input-border)] rounded text-[var(--vscode-text)] focus:outline-none focus:border-[var(--vscode-accent)]"
-          />
+      <div className="flex items-center justify-between px-2 py-2.5 border-b border-[var(--vscode-border)]">
+        {!chatExpanded ? (
           <button
-            type="submit"
-            className="px-3 py-2 bg-[var(--vscode-accent)] hover:bg-[var(--vscode-accent-hover)] rounded text-white transition-colors"
+            onClick={toggleChatExpand}
+            className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] transition-colors w-full flex items-center justify-center"
+            title="Expand AI Chat"
           >
-            <Send size={14} />
+            <MessageSquare size={18} />
           </button>
-        </div>
-      </form>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <Bot size={16} className="text-[var(--vscode-accent)]" />
+              <span className="text-[13px] font-medium text-[var(--vscode-text-bright)]">
+                AI Chat
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={toggleChatExpand}
+                className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] transition-colors"
+                title="Collapse"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                onClick={closeChat}
+                className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {chatExpanded && (
+        <>
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div
+                  className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
+                    msg.role === "assistant"
+                      ? "bg-[var(--vscode-accent)]"
+                      : "bg-[var(--vscode-badge-bg)]"
+                  }`}
+                >
+                  {msg.role === "assistant" ? (
+                    <Bot size={12} className="text-white" />
+                  ) : (
+                    <User size={12} className="text-white" />
+                  )}
+                </div>
+                <div
+                  className={`text-[13px] leading-relaxed max-w-[80%] rounded-lg px-3 py-2 ${
+                    msg.role === "assistant"
+                      ? "bg-[var(--vscode-input-bg)] text-[var(--vscode-text)]"
+                      : "bg-[var(--vscode-accent)] text-white"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Input */}
+          <form
+            onSubmit={handleSubmit}
+            className="p-3 border-t border-[var(--vscode-border)]"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about Arandelle..."
+                className="flex-1 px-3 py-2 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-input-border)] rounded text-[var(--vscode-text)] focus:outline-none focus:border-[var(--vscode-accent)]"
+              />
+              <button
+                type="submit"
+                className="px-3 py-2 bg-[var(--vscode-accent)] hover:bg-[var(--vscode-accent-hover)] rounded text-white transition-colors"
+              >
+                <Send size={14} />
+              </button>
+            </div>
+          </form>
+        </>
+      )}
     </div>
   );
 }

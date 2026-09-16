@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import AsciiPortrait from "@/components/portfolio/AsciiPortrait";
+import { usePortfolio } from "@/context/vscode-context";
 
 const tabs = [
   { id: "problems", label: "PROBLEMS", icon: AlertCircle, count: 0 },
@@ -25,7 +26,7 @@ const tabs = [
 ];
 
 export function BottomPanel() {
-  const [panelHeight, setPanelHeight] = useState(36);
+  const [panelHeight, setPanelHeight] = useState(300);
   const [activeTab, setActiveTab] = useState("terminal");
   const [isDragging, setIsDragging] = useState(false);
   const [showTerminalSelector, setShowTerminalSelector] = useState(false);
@@ -33,6 +34,7 @@ export function BottomPanel() {
   const dragStartHeight = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const selectorRef = useRef<HTMLDivElement>(null);
+  const { closeBottomPanel } = usePortfolio();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey && e.key === "`") {
@@ -61,7 +63,7 @@ export function BottomPanel() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = dragStartY.current - e.clientY;
-      const newHeight = Math.max(36, Math.min(600, dragStartHeight.current + delta));
+      const newHeight = Math.max(36, Math.min(900, dragStartHeight.current + delta));
       setPanelHeight(newHeight);
     };
 
@@ -144,7 +146,7 @@ export function BottomPanel() {
             <ChevronDown size={14} />
           </button>
           <button
-            onClick={() => setPanelHeight(0)}
+            onClick={closeBottomPanel}
             className="p-1 hover:bg-[var(--vscode-line-highlight)] rounded text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
           >
             <X size={14} />

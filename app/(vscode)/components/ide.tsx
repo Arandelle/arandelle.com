@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { GitBranch, Circle, Terminal as TerminalIcon, MessageSquare } from "lucide-react";
 import { PortfolioProvider, usePortfolio } from "@/context/vscode-context";
 import { ActivityBar } from "./activity-bar";
@@ -76,11 +76,6 @@ function MenuBar() {
 
 function IDEShell() {
   const { chatOpen, activeTabId, openTabs, closeTab, bottomPanelOpen } = usePortfolio();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,63 +90,13 @@ function IDEShell() {
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
-  // During SSR/hydration, don't render panels to avoid mismatch
-  if (!mounted) {
-    return (
-      <div className="vscode-ide flex flex-col h-screen">
-        <MenuBar />
-        <div className="flex flex-1 overflow-hidden">
-          <ActivityBar />
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-                <TabBar />
-                <div className="flex-1 overflow-auto">
-                  <Editor />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="h-[var(--statusbar-height)] bg-[var(--vscode-statusbar-bg)] flex items-center px-3 text-[11px] text-white/90 shrink-0 gap-4">
-          <div className="flex items-center gap-1.5">
-            <GitBranch size={12} />
-            <span>main</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Circle size={8} className="fill-current" />
-            <span>0 errors</span>
-          </div>
-          <div className="ml-auto flex items-center gap-4">
-            {activeTab && (
-              <>
-                <span>Ln 1, Col 1</span>
-                <span>Spaces: 2</span>
-                <span>UTF-8</span>
-                <span>
-                  {activeTab.name.endsWith(".tsx") ? "TypeScript React" : "MDX"}
-                </span>
-              </>
-            )}
-            <span className="opacity-70">portfolio v1.0</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="vscode-ide flex flex-col h-screen">
-      {/* Menu Bar */}
       <MenuBar />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Activity bar — full height, far left */}
         <ActivityBar />
-        {/* Sidebar — full height */}
         <Sidebar />
-        {/* Editor + terminal + statusbar stacked */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <div className="flex flex-1 overflow-hidden">
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
@@ -163,12 +108,10 @@ function IDEShell() {
             {chatOpen && <ChatPanel />}
           </div>
 
-          {/* Bottom panel — only under the editor */}
           {bottomPanelOpen && <BottomPanel />}
         </div>
       </div>
 
-      {/* Status bar */}
       <div className="h-[var(--statusbar-height)] bg-[var(--vscode-statusbar-bg)] flex items-center px-3 text-[11px] text-white/90 shrink-0 gap-4">
         <div className="flex items-center gap-1.5">
           <GitBranch size={12} />

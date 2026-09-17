@@ -76,62 +76,43 @@ export function PortfolioProvider({
     return iconMap[iconName] || LucideIcons.FileCode2;
   };
 
-  // Persistent state with localStorage - tabs
-  const [openTabs, setOpenTabsState] = useState<Tab[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("ide-open-tabs");
-        if (!saved) return [];
-        
-        const storedTabs: StoredTab[] = JSON.parse(saved);
-        return storedTabs.map((tab) => ({
-          id: tab.id,
-          name: tab.name,
-          icon: getIconFromName(tab.iconName),
-          iconColor: tab.iconColor,
-        }));
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-  
-  const [activeTabId, setActiveTabIdState] = useState<FileId | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("ide-active-tab") || null;
-    }
-    return null;
-  });
-  
-  const [sidebarPanel, setSidebarPanelState] =
-    useState<SidebarPanel>("explorer");
+  // All state starts with SSR-safe defaults; localStorage is hydrated in useEffect
+  const [openTabs, setOpenTabsState] = useState<Tab[]>([]);
+  const [activeTabId, setActiveTabIdState] = useState<FileId | null>(null);
+  const [sidebarPanel, setSidebarPanelState] = useState<SidebarPanel>("explorer");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatOpen, setChatOpenState] = useState(false);
+  const [chatExpanded, setChatExpandedState] = useState(true);
+  const [bottomPanelOpen, setBottomPanelOpenState] = useState(false);
 
-  // Persistent state with localStorage - panels
-  const [chatOpen, setChatOpenState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ide-chat-open");
-      return saved === "true";
-    }
-    return false;
-  });
+  // Hydrate from localStorage after mount to avoid SSR/client mismatch
+  useEffect(() => {
+    try {
+      const savedTabs = localStorage.getItem("ide-open-tabs");
+      if (savedTabs) {
+        const storedTabs: StoredTab[] = JSON.parse(savedTabs);
+        setOpenTabsState(
+          storedTabs.map((tab) => ({
+            id: tab.id,
+            name: tab.name,
+            icon: getIconFromName(tab.iconName),
+            iconColor: tab.iconColor,
+          })),
+        );
+      }
+    } catch {}
 
-  const [chatExpanded, setChatExpandedState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ide-chat-expanded");
-      return saved !== "false"; // default to expanded
-    }
-    return true;
-  });
+    setActiveTabIdState(localStorage.getItem("ide-active-tab") || null);
 
-  const [bottomPanelOpen, setBottomPanelOpenState] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("ide-bottom-panel-open");
-      return saved === "true";
-    }
-    return false;
-  });
+    const chatSaved = localStorage.getItem("ide-chat-open");
+    if (chatSaved === "true") setChatOpenState(true);
+
+    const chatExpandedSaved = localStorage.getItem("ide-chat-expanded");
+    if (chatExpandedSaved === "false") setChatExpandedState(false);
+
+    const bottomSaved = localStorage.getItem("ide-bottom-panel-open");
+    if (bottomSaved === "true") setBottomPanelOpenState(true);
+  }, []);
 
   // Persist state changes to localStorage
   useEffect(() => {

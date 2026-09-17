@@ -34,7 +34,7 @@ export function BottomPanel() {
   const dragStartHeight = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const selectorRef = useRef<HTMLDivElement>(null);
-  const { closeBottomPanel } = usePortfolio();
+  const { closeBottomPanel, isMobile } = usePortfolio();
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey && e.key === "`") {
@@ -89,6 +89,131 @@ export function BottomPanel() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTerminalSelector]);
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full bg-[var(--vscode-panel-bg)]">
+        {/* Mobile header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vscode-border)] bg-[var(--vscode-titlebar-bg)]">
+          <span className="text-[12px] font-semibold uppercase tracking-wider text-[var(--vscode-text-muted)]">
+            {tabs.find((t) => t.id === activeTab)?.label ?? "Terminal"}
+          </span>
+          <button
+            onClick={closeBottomPanel}
+            className="p-1.5 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Mobile tab bar */}
+        <div className="flex items-center border-b border-[var(--vscode-border)] overflow-x-auto shrink-0">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 text-[11px] uppercase tracking-wide border-b-2 whitespace-nowrap transition-colors ${
+                  isActive
+                    ? "text-[var(--vscode-text-bright)] border-[var(--vscode-accent)]"
+                    : "text-[var(--vscode-text-muted)] border-transparent hover:text-[var(--vscode-text)]"
+                }`}
+              >
+                <Icon size={12} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Mobile content */}
+        <div className="flex-1 overflow-hidden relative">
+          {activeTab === "terminal" && (
+            <div className="h-full flex flex-col">
+              <div className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px]">
+                <div className="text-[var(--vscode-terminal-banner)]">Windows PowerShell</div>
+                <div className="text-[var(--vscode-text-muted)]">
+                  Copyright (C) Microsoft Corporation. All rights reserved.
+                </div>
+                <div className="mt-2">
+                  <span className="text-[var(--vscode-text-muted)]">
+                    Install the latest PowerShell for new features and improvements!
+                  </span>
+                  <span className="text-[var(--vscode-accent)]"> https://aka.ms/PSWindows</span>
+                </div>
+                <div className="mt-3">
+                  <span className="text-[var(--vscode-terminal-green)]">
+                    PS C:\Users\benjamaeb\OneDrive\Documents\arandelle\arandelle.com&gt;
+                  </span>
+                  <span className="text-[var(--vscode-text)]"> ssh root@143.198.1.27</span>
+                </div>
+                <div className="mt-2 text-[var(--vscode-text-muted)]">
+                  <div>Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic x86_64)</div>
+                  <div className="mt-1"> * Documentation:  https://help.ubuntu.com</div>
+                  <div> * Management:     https://landscape.canonical.com</div>
+                  <div> * Support:        https://ubuntu.com/advantage</div>
+                </div>
+                <div className="mt-3 text-[var(--vscode-terminal-green)]">
+                  <div>   _____                        _   _       _           </div>
+                  <div>  |  ___| __ __ _ _ __ ___   __ _| |_(_) __| | ___ _ __ </div>
+                  <div>  | |_ | &apos;__/ _` | &apos;_ ` _ \ / _` | __| |/ _` |/ _ \ &apos;__|</div>
+                  <div>  |  _|| | | (_| | | | | | | (_| | |_| | (_| |  __/ |   </div>
+                  <div>  |_|  |_|  \__,_|_| |_| |_|\__,_|\__|_|\__,_|\___|_|   </div>
+                </div>
+                <div className="mt-3">
+                  <span className="text-[var(--vscode-terminal-green)]">root@portfolio</span>
+                  <span className="text-[var(--vscode-text)]">:</span>
+                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                  <span className="text-[var(--vscode-text)]">$ </span>
+                  <span className="text-[var(--vscode-text)]">cat portrait.ascii</span>
+                </div>
+                <div className="mt-2">
+                  <AsciiPortrait width={40} />
+                </div>
+                <div className="mt-2">
+                  <span className="text-[var(--vscode-terminal-green)]">root@portfolio</span>
+                  <span className="text-[var(--vscode-text)]">:</span>
+                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                  <span className="text-[var(--vscode-text)]">$ </span>
+                  <span className="inline-block w-2 h-4 bg-[var(--vscode-text)] animate-pulse" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "problems" && (
+            <div className="p-4 text-[12px] text-[var(--vscode-text-muted)] font-mono">
+              No problems have been detected in the workspace.
+            </div>
+          )}
+
+          {activeTab === "output" && (
+            <div className="p-4 text-[12px] text-[var(--vscode-text-muted)] font-mono">
+              <div>[Info  - 10:42:15] Starting portfolio server...</div>
+              <div className="text-[var(--vscode-text)]">
+                [Info  - 10:42:16] Server running on http://localhost:3000
+              </div>
+              <div>[Info  - 10:42:16] Watching for file changes...</div>
+            </div>
+          )}
+
+          {activeTab === "debug" && (
+            <div className="p-4 text-[12px] text-[var(--vscode-text-muted)] font-mono">
+              Debug console not active. Press F5 to start debugging.
+            </div>
+          )}
+
+          {activeTab === "ports" && (
+            <div className="p-4 text-[12px] text-[var(--vscode-text-muted)] font-mono">
+              No ports forwarded.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

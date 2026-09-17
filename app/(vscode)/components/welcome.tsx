@@ -45,19 +45,24 @@ export function Welcome() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Main welcome area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center">
+        <Code2
+          size={56}
+          strokeWidth={1}
+          className="sm:hidden text-[var(--vscode-border)] mb-6"
+        />
         <Code2
           size={80}
           strokeWidth={1}
-          className="text-[var(--vscode-border)] mb-8"
+          className="hidden sm:block text-[var(--vscode-border)] mb-8"
         />
         <h1
-          className="text-[28px] font-light text-[var(--vscode-text-bright)] mb-2"
+          className="text-[22px] sm:text-[28px] font-light text-[var(--vscode-text-bright)] mb-2"
           style={{ fontFamily: "var(--font-vscode)" }}
         >
           Arandelle Paguinto
         </h1>
-        <p className="text-[var(--vscode-text-muted)] mb-10 text-[14px]">
+        <p className="text-[var(--vscode-text-muted)] mb-8 sm:mb-10 text-[13px] sm:text-[14px]">
           Fullstack Web Developer — Select a file from the Explorer to get started
         </p>
 

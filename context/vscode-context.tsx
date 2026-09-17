@@ -35,6 +35,7 @@ interface PortfolioContextValue {
   chatOpen: boolean;
   chatExpanded: boolean;
   bottomPanelOpen: boolean;
+  isMobile: boolean;
   data: PortfolioData;
   openFile: (
     id: FileId,
@@ -75,6 +76,16 @@ export function PortfolioProvider({
   const getIconFromName = (iconName: string): LucideIcon => {
     return iconMap[iconName] || LucideIcons.FileCode2;
   };
+
+  // Responsive breakpoint detection (SSR-safe)
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // All state starts with SSR-safe defaults; localStorage is hydrated in useEffect
   const [openTabs, setOpenTabsState] = useState<Tab[]>([]);
@@ -218,6 +229,7 @@ export function PortfolioProvider({
         chatOpen,
         chatExpanded,
         bottomPanelOpen,
+        isMobile,
         data,
         openFile,
         closeTab,

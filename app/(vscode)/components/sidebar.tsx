@@ -20,10 +20,10 @@ import {
   articles as staticArticles,
   timeline as staticTimeline,
 } from "@/lib/data";
-import type { FileItem } from "../types";
+import type { FileItem, SidebarPanel } from "../types";
 
 export function Sidebar() {
-  const { sidebarPanel, sidebarOpen, closeSidebar } = usePortfolio();
+  const { sidebarPanel, sidebarOpen, closeSidebar, isMobile, setSidebarPanel } = usePortfolio();
 
   const panelTitles: Record<string, string> = {
     explorer: "EXPLORER",
@@ -32,34 +32,54 @@ export function Sidebar() {
     extensions: "EXTENSIONS",
   };
 
-  return (
-    <>
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
+  if (!sidebarOpen) return null;
+
+  if (isMobile) {
+    return (
+      <>
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={closeSidebar}
         />
-      )}
+        <aside className="fixed left-0 top-8 bottom-[var(--statusbar-height)] w-[80vw] max-w-[320px] z-50 bg-[var(--vscode-sidebar-bg)] border-r border-[var(--vscode-border)] flex flex-col shadow-xl">
+          <div className="flex items-center border-b border-[var(--vscode-border)] overflow-x-auto shrink-0">
+            {(Object.keys(panelTitles) as SidebarPanel[]).map((panel) => (
+              <button
+                key={panel}
+                onClick={() => setSidebarPanel(panel)}
+                className={`px-3 py-2 text-[11px] uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${
+                  sidebarPanel === panel
+                    ? "text-[var(--vscode-text-bright)] border-[var(--vscode-accent)]"
+                    : "text-[var(--vscode-text-muted)] border-transparent hover:text-[var(--vscode-text)]"
+                }`}
+              >
+                {panelTitles[panel]}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            {sidebarPanel === "explorer" && <ExplorerPanel />}
+            {sidebarPanel === "search" && <SearchPanel />}
+            {sidebarPanel === "source-control" && <SourceControlPanel />}
+            {sidebarPanel === "extensions" && <ExtensionsPanel />}
+          </div>
+        </aside>
+      </>
+    );
+  }
 
-      <aside
-        className={`${
-          sidebarOpen
-            ? "w-[72vw] sm:w-[var(--sidebar-width)]"
-            : "w-0 overflow-hidden"
-        } shrink-0 bg-[var(--vscode-sidebar-bg)] border-r border-[var(--vscode-border)] flex flex-col transition-[width] duration-150 z-40 md:z-auto fixed md:relative left-0 top-0 h-full`}
-      >
-        <div className="px-4 py-3 text-[11px] font-semibold tracking-wider text-[var(--vscode-text-muted)] uppercase">
-          {panelTitles[sidebarPanel]}
-        </div>
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          {sidebarPanel === "explorer" && <ExplorerPanel />}
-          {sidebarPanel === "search" && <SearchPanel />}
-          {sidebarPanel === "source-control" && <SourceControlPanel />}
-          {sidebarPanel === "extensions" && <ExtensionsPanel />}
-        </div>
-      </aside>
-    </>
+  return (
+    <aside className="w-[var(--sidebar-width)] shrink-0 bg-[var(--vscode-sidebar-bg)] border-r border-[var(--vscode-border)] flex flex-col">
+      <div className="px-4 py-3 text-[11px] font-semibold tracking-wider text-[var(--vscode-text-muted)] uppercase">
+        {panelTitles[sidebarPanel]}
+      </div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        {sidebarPanel === "explorer" && <ExplorerPanel />}
+        {sidebarPanel === "search" && <SearchPanel />}
+        {sidebarPanel === "source-control" && <SourceControlPanel />}
+        {sidebarPanel === "extensions" && <ExtensionsPanel />}
+      </div>
+    </aside>
   );
 }
 

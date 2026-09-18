@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { GitBranch, Circle, Terminal as TerminalIcon, MessageSquare, Menu, X } from "lucide-react";
+import {
+  GitBranch,
+  Circle,
+  Terminal as TerminalIcon,
+  MessageSquare,
+  Menu,
+  X,
+} from "lucide-react";
 import { PortfolioProvider, usePortfolio } from "@/context/vscode-context";
 import { ActivityBar } from "./activity-bar";
 import { Sidebar } from "./sidebar";
@@ -13,7 +20,15 @@ import type { PortfolioData } from "../types";
 import "../vscode.css";
 
 function MenuBar() {
-  const { toggleBottomPanel, bottomPanelOpen, toggleChat, chatOpen, isMobile, toggleSidebar, sidebarOpen } = usePortfolio();
+  const {
+    toggleBottomPanel,
+    bottomPanelOpen,
+    toggleChat,
+    chatOpen,
+    isMobile,
+    toggleSidebar,
+    sidebarOpen,
+  } = usePortfolio();
 
   return (
     <div className="h-8 bg-[var(--vscode-titlebar-bg)] border-b border-[var(--vscode-border)] flex items-center px-3 text-[12px] shrink-0">
@@ -29,8 +44,8 @@ function MenuBar() {
 
       {/* Logo */}
       <div className="flex items-center gap-2 mr-4">
-        <div className="w-4 h-4 bg-[var(--vscode-accent)] rounded-sm flex items-center justify-center">
-          <span className="text-white text-[9px] font-bold">A</span>
+        <div className="w-5 h-5 bg-[var(--vscode-accent)]">
+          <img src={"/profile.jpg"} alt="Arandelle" />
         </div>
       </div>
 
@@ -65,6 +80,10 @@ function MenuBar() {
           <TerminalIcon size={12} className="inline mr-1" />
           Terminal
         </button>
+        <button className="px-2 py-0.5 hover:bg-[var(--vscode-line-highlight)] rounded text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] transition-colors">
+          Help
+        </button>
+
         <button
           onClick={toggleChat}
           className={`px-2 py-0.5 rounded transition-colors ${
@@ -75,9 +94,6 @@ function MenuBar() {
         >
           <MessageSquare size={12} className="inline mr-1" />
           AI Chat
-        </button>
-        <button className="px-2 py-0.5 hover:bg-[var(--vscode-line-highlight)] rounded text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] transition-colors">
-          Help
         </button>
       </div>
 
@@ -111,7 +127,14 @@ function MenuBar() {
 }
 
 function IDEShell() {
-  const { chatOpen, activeTabId, openTabs, closeTab, bottomPanelOpen, isMobile } = usePortfolio();
+  const {
+    chatOpen,
+    activeTabId,
+    openTabs,
+    closeTab,
+    bottomPanelOpen,
+    isMobile,
+  } = usePortfolio();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -21,6 +21,7 @@ import {
   timeline as staticTimeline,
 } from "@/lib/data";
 import type { FileItem, SidebarPanel } from "../types";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Sidebar() {
   const { sidebarPanel, sidebarOpen, closeSidebar, isMobile, setSidebarPanel } = usePortfolio();
@@ -372,79 +373,6 @@ function SourceControlPanel() {
   );
 }
 
-/* ── Theme Toggle (shared with v0) ─────────────────────────────────────── */
-
-type Theme = "light" | "dark" | "system";
-
-function getThemeSnapshot(): Theme {
-  return (localStorage.getItem("theme") as Theme) || "system";
-}
-
-function getServerSnapshot(): Theme {
-  return "system";
-}
-
-function subscribeTheme(callback: () => void) {
-  window.addEventListener("storage", callback);
-  window.addEventListener("theme-change", callback);
-  const mql = window.matchMedia("(prefers-color-scheme: dark)");
-  mql.addEventListener("change", callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("theme-change", callback);
-    mql.removeEventListener("change", callback);
-  };
-}
-
-function ThemeToggle() {
-  const theme = useSyncExternalStore(
-    subscribeTheme,
-    getThemeSnapshot,
-    getServerSnapshot,
-  );
-
-  const setTheme = useCallback((newTheme: Theme) => {
-    localStorage.setItem("theme", newTheme);
-    window.dispatchEvent(new Event("theme-change"));
-
-    const resolved =
-      newTheme === "system"
-        ? window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light"
-        : newTheme;
-
-    document.documentElement.classList.toggle("dark", resolved === "dark");
-    document.documentElement.style.colorScheme =
-      resolved === "dark" ? "dark" : "light";
-  }, []);
-
-  const themes = [
-    { value: "light" as const, icon: Sun, label: "Light" },
-    { value: "dark" as const, icon: Moon, label: "Dark" },
-    { value: "system" as const, icon: Monitor, label: "System" },
-  ];
-
-  return (
-    <div className="flex gap-1 mt-1">
-      {themes.map(({ value, icon: Icon, label }) => (
-        <button
-          key={value}
-          onClick={() => setTheme(value)}
-          className={`flex items-center justify-center h-7 w-7 rounded border transition-colors ${
-            theme === value
-              ? "border-[var(--vscode-accent)] text-[var(--vscode-accent)]"
-              : "border-[var(--vscode-border)] text-[var(--vscode-text-muted)] hover:border-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
-          }`}
-          title={label}
-          aria-label={label}
-        >
-          <Icon size={14} />
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /* ── Extensions Panel ──────────────────────────────────────────────────── */
 

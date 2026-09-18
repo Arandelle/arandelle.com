@@ -96,7 +96,7 @@ export function PortfolioProvider({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [chatOpen, setChatOpenState] = useState(false);
   const [chatExpanded, setChatExpandedState] = useState(true);
-  const [bottomPanelOpen, setBottomPanelOpenState] = useState(false);
+  const [bottomPanelOpen, setBottomPanelOpenState] = useState(true);
 
   // Hydrate from URL query param or localStorage after mount
   const router = useRouter();

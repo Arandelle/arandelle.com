@@ -9,6 +9,7 @@ import BlogSection from "@/components/portfolio/BlogSection";
 import ContactSection from "@/components/portfolio/ContactSection";
 import FloatingNav from "@/components/portfolio/FloatingNav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import KeyboardShortcuts from "@/components/portfolio/KeyboardShortcuts";
 
 export const revalidates = 60;
 
@@ -31,6 +32,9 @@ export default async function Home() {
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggle />
       </div>
+
+      {/* Keyboard shortcuts */}
+      <KeyboardShortcuts />
 
       {/* Main scroll content */}
       <main>

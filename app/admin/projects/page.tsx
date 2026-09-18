@@ -28,7 +28,7 @@ export default function ProjectsPage() {
   const [featured, setFeatured] = useState(false);
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
-
+  
   useEffect(() => {
     fetchProjects();
   }, []);

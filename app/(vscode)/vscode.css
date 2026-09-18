@@ -1,0 +1,127 @@
+.vscode-ide {
+  /* ── Light theme (VS Code Light+) ── */
+  --vscode-bg: #ffffff;
+  --vscode-sidebar-bg: #f3f3f3;
+  --vscode-activitybar-bg: #f5f5f5;
+  --vscode-tab-active: #ffffff;
+  --vscode-tab-inactive: #ececec;
+  --vscode-tab-hover: #e8e8e8;
+  --vscode-border: #e5e5e5;
+  --vscode-text: #616161;
+  --vscode-text-muted: #999999;
+  --vscode-text-bright: #1e1e1e;
+  --vscode-accent: #0066b8;
+  --vscode-accent-hover: #005a9e;
+  --vscode-badge-bg: #cccccc;
+  --vscode-input-bg: #ffffff;
+  --vscode-input-border: #cecece;
+  --vscode-scrollbar: rgba(100, 100, 100, 0.3);
+  --vscode-scrollbar-hover: rgba(100, 100, 100, 0.5);
+  --vscode-welcome-bg: #ffffff;
+  --vscode-statusbar-bg: #007acc;
+  --vscode-line-highlight: rgba(0, 0, 0, 0.04);
+  --vscode-selection: rgba(0, 102, 184, 0.15);
+  --vscode-panel-bg: #f3f3f3;
+  --vscode-titlebar-bg: #e8e8e8;
+  --vscode-terminal-bg: #ffffff;
+  --vscode-terminal-green: #008000;
+  --vscode-terminal-blue: #0066b8;
+  --vscode-terminal-yellow: #b58900;
+  --vscode-terminal-banner: #0066b8;
+  --vscode-dropdown-bg: #ffffff;
+  --vscode-dropdown-border: #cecece;
+  --vscode-list-hover: rgba(0, 0, 0, 0.04);
+
+  --sidebar-width: 260px;
+  --activitybar-width: 48px;
+  --tabbar-height: 36px;
+  --statusbar-height: 24px;
+
+  --font-vscode: "Geist Mono", ui-monospace, "Cascadia Code", "Source Code Pro",
+    Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --font-vscode-ui: "Geist", system-ui, -apple-system, sans-serif;
+
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--vscode-bg);
+  color: var(--vscode-text);
+  font-family: var(--font-vscode-ui);
+  font-size: 13px;
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+/* ── Dark theme (VS Code Dark+) ── */
+.dark .vscode-ide {
+  --vscode-bg: #1e1e1e;
+  --vscode-sidebar-bg: #252526;
+  --vscode-activitybar-bg: #333333;
+  --vscode-tab-active: #1e1e1e;
+  --vscode-tab-inactive: #2d2d2d;
+  --vscode-tab-hover: #2a2a2a;
+  --vscode-border: #3c3c3c;
+  --vscode-text: #cccccc;
+  --vscode-text-muted: #858585;
+  --vscode-text-bright: #e0e0e0;
+  --vscode-accent: #007acc;
+  --vscode-accent-hover: #1a8ad4;
+  --vscode-badge-bg: #4d4d4d;
+  --vscode-input-bg: #3c3c3c;
+  --vscode-input-border: #555555;
+  --vscode-scrollbar: rgba(121, 121, 121, 0.4);
+  --vscode-scrollbar-hover: rgba(100, 100, 100, 0.7);
+  --vscode-welcome-bg: #1e1e1e;
+  --vscode-statusbar-bg: #007acc;
+  --vscode-line-highlight: rgba(255, 255, 255, 0.04);
+  --vscode-selection: rgba(38, 79, 120, 0.6);
+  --vscode-panel-bg: #1e1e1e;
+  --vscode-titlebar-bg: #252526;
+  --vscode-terminal-bg: #1e1e1e;
+  --vscode-terminal-green: #4ec9b0;
+  --vscode-terminal-blue: #569cd6;
+  --vscode-terminal-yellow: #dcdcaa;
+  --vscode-terminal-banner: #012456;
+  --vscode-dropdown-bg: #3c3c3c;
+  --vscode-dropdown-border: #454545;
+  --vscode-list-hover: #2a2d2e;
+}
+
+.vscode-ide * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vscode-scrollbar) transparent;
+}
+
+.vscode-ide *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.vscode-ide *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vscode-ide *::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbar);
+  border-radius: 4px;
+}
+
+.vscode-ide *::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbar-hover);
+}
+
+.vscode-ide ::selection {
+  background: var(--vscode-selection);
+}
+
+.vscode-ide input::placeholder {
+  color: var(--vscode-text-muted);
+}
+
+.vscode-ide a {
+  color: var(--vscode-accent);
+  text-decoration: none;
+}
+
+.vscode-ide a:hover {
+  text-decoration: underline;
+}

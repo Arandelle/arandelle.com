@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
-import "./globals.css";
+import '../globals.css'
 import { ThemeScript } from "@/components/theme-script";
 
 const geistSans = Geist({
@@ -28,15 +28,15 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Arandelle — VS Code Portfolio",
+  title: "Arandelle - Portfolio",
   description:
-    "A VS Code-themed interactive portfolio for Arandelle Paguinto, Fullstack Web Developer.",
+    "Arandelle Paguinto is a software engineer and fullstack web developer in the Philippines building fast, accessible products for the web.",
   icons: {
     icon: "/profile.svg",
   },
 };
 
-export default function RootLayout({
+export default function MeLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

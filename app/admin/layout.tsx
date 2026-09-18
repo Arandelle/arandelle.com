@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface AdminUser {
   id: string;
@@ -55,7 +55,7 @@ export default function AdminLayout({
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/auth/verify');
+        const res = await fetch("/api/auth/verify");
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
@@ -121,8 +121,8 @@ export default function AdminLayout({
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                   isActive
-                    ? 'bg-gray-100 dark:bg-gray-800 text-ink dark:text-gray-100 font-medium'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                    ? "bg-gray-100 dark:bg-gray-800 text-ink dark:text-gray-100 font-medium"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 }`}
               >
                 <span>{item.icon}</span>

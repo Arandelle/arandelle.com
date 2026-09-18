@@ -31,6 +31,9 @@ export const metadata: Metadata = {
   title: "Arandelle — VS Code Portfolio",
   description:
     "A VS Code-themed interactive portfolio for Arandelle Paguinto, Fullstack Web Developer.",
+  icons: {
+    icon: "/profile.svg",
+  },
 };
 
 export default function RootLayout({

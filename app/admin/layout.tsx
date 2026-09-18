@@ -11,13 +11,15 @@ interface AdminUser {
   name: string;
 }
 
-const navItems = [
-  { label: 'Dashboard', href: '/admin', icon: '📊' },
-  { label: 'Projects', href: '/admin/projects', icon: '📁' },
-  { label: 'Experience', href: '/admin/experience', icon: '💼' },
-  { label: 'Certifications', href: '/admin/certifications', icon: '🏆' },
-  { label: 'Articles', href: '/admin/articles', icon: '📝' },
-  { label: 'Expertise', href: '/admin/expertise', icon: '🛠️' },
+const ADMIN_SUBDOMAIN = 'dev';
+
+const baseNavItems = [
+  { label: 'Dashboard', path: '', icon: '📊' },
+  { label: 'Projects', path: '/projects', icon: '📁' },
+  { label: 'Experience', path: '/experience', icon: '💼' },
+  { label: 'Certifications', path: '/certifications', icon: '🏆' },
+  { label: 'Articles', path: '/articles', icon: '📝' },
+  { label: 'Expertise', path: '/expertise', icon: '🛠️' },
 ];
 
 export default function AdminLayout({
@@ -30,6 +32,24 @@ export default function AdminLayout({
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isDevSubdomain =
+    typeof window !== 'undefined' &&
+    window.location.hostname.startsWith(`${ADMIN_SUBDOMAIN}.`);
+
+  const prefix = (path: string) => (isDevSubdomain ? path : `/admin${path}`);
+  const navItems = baseNavItems.map((item) => ({
+    ...item,
+    href: prefix(item.path),
+  }));
+  const loginPath = prefix('/login');
+  const homePath = prefix('');
+
+  // On dev subdomain pathname is /, /projects, etc.
+  // On normal domain pathname is /admin, /admin/projects, etc.
+  const basePath = isDevSubdomain
+    ? pathname
+    : pathname?.replace(/^\/admin/, '') || '/';
+
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
@@ -40,25 +60,25 @@ export default function AdminLayout({
           const data = await res.json();
           setUser(data.user);
           if (isLoginPage) {
-            router.push('/admin');
+            router.push(homePath);
           }
         } else if (!isLoginPage) {
-          router.push('/admin/login');
+          router.push(loginPath);
         }
       } catch {
         if (!isLoginPage) {
-          router.push('/admin/login');
+          router.push(loginPath);
         }
       } finally {
         setLoading(false);
       }
     };
     checkAuth();
-  }, [router, isLoginPage]);
+  }, [router, isLoginPage, homePath, loginPath]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin/login');
+    router.push(loginPath);
     router.refresh();
   };
 
@@ -92,9 +112,9 @@ export default function AdminLayout({
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const isActive =
-              item.href === '/admin'
-                ? pathname === '/admin'
-                : pathname?.startsWith(item.href);
+              item.path === ''
+                ? basePath === '/' || basePath === ''
+                : basePath?.startsWith(item.path);
             return (
               <Link
                 key={item.href}

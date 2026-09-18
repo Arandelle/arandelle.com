@@ -43,7 +43,7 @@ export function Welcome() {
   }, [handleKeyDown]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden h-full">
       {/* Main welcome area */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center">
         <Code2

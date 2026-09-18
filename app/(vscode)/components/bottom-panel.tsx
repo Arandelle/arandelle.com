@@ -18,11 +18,11 @@ import AsciiPortrait from "@/components/portfolio/AsciiPortrait";
 import { usePortfolio } from "@/context/vscode-context";
 
 const tabs = [
-  { id: "problems", label: "PROBLEMS", icon: AlertCircle, count: 0 },
-  { id: "output", label: "OUTPUT", icon: ChevronRight },
-  { id: "debug", label: "DEBUG CONSOLE", icon: Bug },
-  { id: "terminal", label: "TERMINAL", icon: Terminal },
-  { id: "ports", label: "PORTS", icon: Plug },
+  { id: "problems", label: "PROBLEMS", count: 99 },
+  { id: "output", label: "OUTPUT" },
+  { id: "debug", label: "DEBUG CONSOLE" },
+  { id: "terminal", label: "TERMINAL" },
+  { id: "ports", label: "PORTS" },
 ];
 
 export function BottomPanel() {
@@ -63,7 +63,10 @@ export function BottomPanel() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const delta = dragStartY.current - e.clientY;
-      const newHeight = Math.max(36, Math.min(900, dragStartHeight.current + delta));
+      const newHeight = Math.max(
+        36,
+        Math.min(900, dragStartHeight.current + delta),
+      );
       setPanelHeight(newHeight);
     };
 
@@ -81,7 +84,10 @@ export function BottomPanel() {
     if (!showTerminalSelector) return;
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) {
+      if (
+        selectorRef.current &&
+        !selectorRef.current.contains(e.target as Node)
+      ) {
         setShowTerminalSelector(false);
       }
     };
@@ -109,7 +115,6 @@ export function BottomPanel() {
         {/* Mobile tab bar */}
         <div className="flex items-center border-b border-[var(--vscode-border)] overflow-x-auto shrink-0">
           {tabs.map((tab) => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -121,7 +126,6 @@ export function BottomPanel() {
                     : "text-[var(--vscode-text-muted)] border-transparent hover:text-[var(--vscode-text)]"
                 }`}
               >
-                <Icon size={12} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -133,47 +137,131 @@ export function BottomPanel() {
           {activeTab === "terminal" && (
             <div className="h-full flex flex-col">
               <div className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px]">
-                <div className="text-[var(--vscode-terminal-banner)]">Windows PowerShell</div>
+                <div className="text-[var(--vscode-terminal-banner)]">
+                  Windows PowerShell
+                </div>
                 <div className="text-[var(--vscode-text-muted)]">
                   Copyright (C) Microsoft Corporation. All rights reserved.
                 </div>
                 <div className="mt-2">
                   <span className="text-[var(--vscode-text-muted)]">
-                    Install the latest PowerShell for new features and improvements!
+                    Install the latest PowerShell for new features and
+                    improvements!
                   </span>
-                  <span className="text-[var(--vscode-accent)]"> https://aka.ms/PSWindows</span>
+                  <span className="text-[var(--vscode-accent)]">
+                    {" "}
+                    https://aka.ms/PSWindows
+                  </span>
                 </div>
                 <div className="mt-3">
                   <span className="text-[var(--vscode-terminal-green)]">
-                    PS C:\Users\benjamaeb\OneDrive\Documents\arandelle\arandelle.com&gt;
+                    PS
+                    C:\Users\benjamaeb\OneDrive\Documents\arandelle\arandelle.com&gt;
                   </span>
-                  <span className="text-[var(--vscode-text)]"> ssh root@143.198.1.27</span>
+                  <span className="text-[var(--vscode-text)]">
+                    {" "}
+                    ssh root@143.198.1.27
+                  </span>
                 </div>
                 <div className="mt-2 text-[var(--vscode-text-muted)]">
-                  <div>Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic x86_64)</div>
-                  <div className="mt-1"> * Documentation:  https://help.ubuntu.com</div>
-                  <div> * Management:     https://landscape.canonical.com</div>
-                  <div> * Support:        https://ubuntu.com/advantage</div>
+                  <div>
+                    Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic
+                    x86_64)
+                  </div>
+                  <div className="mt-1">
+                    {" "}
+                    * Documentation: https://help.ubuntu.com
+                  </div>
+                  <div> * Management: https://landscape.canonical.com</div>
+                  <div> * Support: https://ubuntu.com/advantage</div>
                 </div>
                 <div className="mt-3 text-[var(--vscode-terminal-green)]">
-                  <div>   _____                        _   _       _           </div>
-                  <div>  |  ___| __ __ _ _ __ ___   __ _| |_(_) __| | ___ _ __ </div>
-                  <div>  | |_ | &apos;__/ _` | &apos;_ ` _ \ / _` | __| |/ _` |/ _ \ &apos;__|</div>
-                  <div>  |  _|| | | (_| | | | | | | (_| | |_| | (_| |  __/ |   </div>
-                  <div>  |_|  |_|  \__,_|_| |_| |_|\__,_|\__|_|\__,_|\___|_|   </div>
+                  <div> _____ _ _ _ </div>
+                  <div>
+                    {" "}
+                    | ___| __ __ _ _ __ ___ __ _| |_(_) __| | ___ _ __{" "}
+                  </div>
+                  <div>
+                    {" "}
+                    | |_ | &apos;__/ _` | &apos;_ ` _ \ / _` | __| |/ _` |/ _ \
+                    &apos;__|
+                  </div>
+                  <div> | _|| | | (_| | | | | | | (_| | |_| | (_| | __/ | </div>
+                  <div> |_| |_| \__,_|_| |_| |_|\__,_|\__|_|\__,_|\___|_| </div>
                 </div>
                 <div className="mt-3">
-                  <span className="text-[var(--vscode-terminal-green)]">root@portfolio</span>
+                  <span className="text-[var(--vscode-terminal-green)]">
+                    root@portfolio
+                  </span>
                   <span className="text-[var(--vscode-text)]">:</span>
                   <span className="text-[var(--vscode-terminal-blue)]">~</span>
                   <span className="text-[var(--vscode-text)]">$ </span>
-                  <span className="text-[var(--vscode-text)]">cat portrait.ascii</span>
+                  <span className="text-[var(--vscode-text)]">
+                    cat portrait.ascii
+                  </span>
                 </div>
                 <div className="mt-2">
                   <AsciiPortrait width={40} />
                 </div>
+                <div className="mt-3">
+                  <span className="text-[var(--vscode-terminal-green)]">
+                    root@portfolio
+                  </span>
+                  <span className="text-[var(--vscode-text)]">:</span>
+                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                  <span className="text-[var(--vscode-terminal-yellow)]">
+                    $ git add .
+                  </span>
+                </div>
+                <div className="mt-1">
+                  <span className="text-[var(--vscode-terminal-green)]">
+                    root@portfolio
+                  </span>
+                  <span className="text-[var(--vscode-text)]">:</span>
+                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                  <span className="text-[var(--vscode-terminal-yellow)]">{` git commit -m "feat: growth is not linear, neither is code"`}</span>
+                </div>
+                <div className="mt-1 text-[var(--vscode-text-muted)]">
+                  <div>
+                    [main f9c60fd] feat: growth is not linear, neither is code
+                  </div>
+                  <div> 3 files changed, 47 insertions(+), 12 deletions(-)</div>
+                </div>
+                <div className="mt-1">
+                  <span className="text-[var(--vscode-terminal-green)]">
+                    root@portfolio
+                  </span>
+                  <span className="text-[var(--vscode-text)]">:</span>
+                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                  <span className="text-[var(--vscode-terminal-yellow)]">
+                    $ git push
+                  </span>
+                </div>
+                <div className="mt-1 text-[var(--vscode-text-muted)]">
+                  <div>
+                    Total 0 (delta 0), reused 0 (delta 0), pack-reused 0 (from
+                    0)
+                  </div>
+                  <div>
+                    To{" "}
+                    <a
+                      href="https://github.com/Arandelle/arandelle.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-[var(--vscode-accent)]"
+                    >
+                      https://github.com/Arandelle/arandelle.com.git
+                    </a>
+                  </div>
+                  <div className="text-[var(--vscode-text)]">
+                    {" "}
+                    1563ed0..f9c60fd main -&gt; main
+                  </div>
+                </div>
                 <div className="mt-2">
-                  <span className="text-[var(--vscode-terminal-green)]">root@portfolio</span>
+                  <span className="text-[var(--vscode-terminal-green)]">
+                    root@portfolio
+                  </span>
                   <span className="text-[var(--vscode-text)]">:</span>
                   <span className="text-[var(--vscode-terminal-blue)]">~</span>
                   <span className="text-[var(--vscode-text)]">$ </span>
@@ -191,11 +279,11 @@ export function BottomPanel() {
 
           {activeTab === "output" && (
             <div className="p-4 text-[12px] text-[var(--vscode-text-muted)] font-mono">
-              <div>[Info  - 10:42:15] Starting portfolio server...</div>
+              <div>[Info - 10:42:15] Starting portfolio server...</div>
               <div className="text-[var(--vscode-text)]">
-                [Info  - 10:42:16] Server running on http://localhost:3000
+                [Info - 10:42:16] Server running on http://localhost:3000
               </div>
-              <div>[Info  - 10:42:16] Watching for file changes...</div>
+              <div>[Info - 10:42:16] Watching for file changes...</div>
             </div>
           )}
 
@@ -230,7 +318,6 @@ export function BottomPanel() {
       {/* Tab bar */}
       <div className="flex items-center border-b border-[var(--vscode-border)] bg-[var(--vscode-titlebar-bg)]">
         {tabs.map((tab) => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -245,10 +332,9 @@ export function BottomPanel() {
                   : "text-[var(--vscode-text-muted)] border-transparent hover:text-[var(--vscode-text)]"
               }`}
             >
-              <Icon size={12} />
               <span>{tab.label}</span>
               {tab.count !== undefined && tab.count > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-[var(--vscode-badge-bg)] text-white rounded-full">
+                <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-[var(--vscode-terminal-banner)] text-white rounded-full">
                   {tab.count}
                 </span>
               )}
@@ -290,9 +376,15 @@ export function BottomPanel() {
                   onClick={() => setShowTerminalSelector(!showTerminalSelector)}
                   className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] hover:bg-[var(--vscode-line-highlight)] rounded transition-colors"
                 >
-                  <Monitor size={12} className="text-[var(--vscode-terminal-banner)]" />
+                  <Monitor
+                    size={12}
+                    className="text-[var(--vscode-terminal-banner)]"
+                  />
                   <span className="text-[var(--vscode-text)]">PowerShell</span>
-                  <ChevronDownIcon size={10} className="text-[var(--vscode-text-muted)]" />
+                  <ChevronDownIcon
+                    size={10}
+                    className="text-[var(--vscode-text-muted)]"
+                  />
                 </button>
               </div>
               <div className="flex items-center gap-1">
@@ -321,16 +413,27 @@ export function BottomPanel() {
                   Select Default Profile
                 </div>
                 <button className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] hover:bg-[var(--vscode-list-hover)] text-[var(--vscode-text)]">
-                  <Monitor size={14} className="text-[var(--vscode-terminal-banner)]" />
+                  <Monitor
+                    size={14}
+                    className="text-[var(--vscode-terminal-banner)]"
+                  />
                   <span>PowerShell</span>
-                  <span className="ml-auto text-[10px] text-[var(--vscode-text-muted)]">Default</span>
+                  <span className="ml-auto text-[10px] text-[var(--vscode-text-muted)]">
+                    Default
+                  </span>
                 </button>
                 <button className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] hover:bg-[var(--vscode-list-hover)] text-[var(--vscode-text)]">
-                  <Terminal size={14} className="text-[var(--vscode-text-muted)]" />
+                  <Terminal
+                    size={14}
+                    className="text-[var(--vscode-text-muted)]"
+                  />
                   <span>Command Prompt</span>
                 </button>
                 <button className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] hover:bg-[var(--vscode-list-hover)] text-[var(--vscode-text)]">
-                  <Terminal size={14} className="text-[var(--vscode-terminal-green)]" />
+                  <Terminal
+                    size={14}
+                    className="text-[var(--vscode-terminal-green)]"
+                  />
                   <span>Git Bash</span>
                 </button>
                 <button className="flex items-center gap-2 w-full px-3 py-1.5 text-[12px] hover:bg-[var(--vscode-list-hover)] text-[var(--vscode-text)]">
@@ -342,47 +445,90 @@ export function BottomPanel() {
 
             {/* Terminal content */}
             <div className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px]">
-              <div className="text-[var(--vscode-terminal-banner)]">Windows PowerShell</div>
-              <div className="text-[var(--vscode-text-muted)]">
-                Copyright (C) Microsoft Corporation. All rights reserved.
-              </div>
-              <div className="mt-2">
-                <span className="text-[var(--vscode-text-muted)]">
-                  Install the latest PowerShell for new features and improvements!
-                </span>
-                <span className="text-[var(--vscode-accent)]"> https://aka.ms/PSWindows</span>
-              </div>
               <div className="mt-3">
                 <span className="text-[var(--vscode-terminal-green)]">
-                  PS C:\Users\benjamaeb\OneDrive\Documents\arandelle\arandelle.com&gt;
+                  PS C:\Users\my-portfolio\arandelle\arandelle.com&gt;
                 </span>
-                <span className="text-[var(--vscode-text)]"> ssh root@143.198.1.27</span>
-              </div>
-              <div className="mt-2 text-[var(--vscode-text-muted)]">
-                <div>Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic x86_64)</div>
-                <div className="mt-1"> * Documentation:  https://help.ubuntu.com</div>
-                <div> * Management:     https://landscape.canonical.com</div>
-                <div> * Support:        https://ubuntu.com/advantage</div>
-              </div>
-              <div className="mt-3 text-[var(--vscode-terminal-green)]">
-                <div>   _____                        _   _       _           </div>
-                <div>  |  ___| __ __ _ _ __ ___   __ _| |_(_) __| | ___ _ __ </div>
-                <div>  | |_ | &apos;__/ _` | &apos;_ ` _ \ / _` | __| |/ _` |/ _ \ &apos;__|</div>
-                <div>  |  _|| | | (_| | | | | | | (_| | |_| | (_| |  __/ |   </div>
-                <div>  |_|  |_|  \__,_|_| |_| |_|\__,_|\__|_|\__,_|\___|_|   </div>
-              </div>
-              <div className="mt-3">
-                <span className="text-[var(--vscode-terminal-green)]">root@portfolio</span>
-                <span className="text-[var(--vscode-text)]">:</span>
-                <span className="text-[var(--vscode-terminal-blue)]">~</span>
-                <span className="text-[var(--vscode-text)]">$ </span>
-                <span className="text-[var(--vscode-text)]">cat portrait.ascii</span>
+                <span className="text-[var(--vscode-text)]">
+                  {" "}
+                  ssh root@143.198.1.27
+                </span>
               </div>
               <div className="mt-2">
                 <AsciiPortrait width={50} />
               </div>
+              <div className="mt-3">
+                <span className="text-[var(--vscode-terminal-green)]">
+                  root@portfolio
+                </span>
+                <span className="text-[var(--vscode-text)]">:</span>
+                <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                <span>
+                  ${" "}
+                  <span className="text-[var(--vscode-terminal-yellow)]">
+                    git
+                  </span>{" "}
+                  add .
+                </span>
+              </div>
+              <div className="mt-1">
+                <span className="text-[var(--vscode-terminal-green)]">
+                  root@portfolio
+                </span>
+                <span className="text-[var(--vscode-text)]">:</span>
+                <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                <span>
+                   ${" "}
+                  <span className="text-[var(--vscode-terminal-yellow)]">
+                    git
+                  </span>
+                  {` commit -m "feat: growth is not linear, neither is code"`}
+                </span>
+              </div>
+              <div className="mt-1 text-[var(--vscode-text-muted)]">
+                <div>
+                  [main f9c60fd] feat: growth is not linear, neither is code
+                </div>
+                <div> 3 files changed, 47 insertions(+), 12 deletions(-)</div>
+              </div>
+              <div className="mt-1">
+                <span className="text-[var(--vscode-terminal-green)]">
+                  root@portfolio
+                </span>
+                <span className="text-[var(--vscode-text)]">:</span>
+                <span className="text-[var(--vscode-terminal-blue)]">~</span>
+                <span className="">
+                  ${" "}
+                  <span className="text-[var(--vscode-terminal-yellow)]">
+                    git
+                  </span>{" "}
+                  push origin main
+                </span>
+              </div>
+              <div className="mt-1 text-[var(--vscode-text-muted)]">
+                <div>
+                  Total 0 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+                </div>
+                <div>
+                  To{" "}
+                  <a
+                    href="https://github.com/Arandelle/arandelle.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-[var(--vscode-accent)]"
+                  >
+                    https://github.com/Arandelle/arandelle.com.git
+                  </a>
+                </div>
+                <div className="text-[var(--vscode-text)]">
+                  {" "}
+                  1563ed0..f9c60fd main -&gt; main
+                </div>
+              </div>
               <div className="mt-2">
-                <span className="text-[var(--vscode-terminal-green)]">root@portfolio</span>
+                <span className="text-[var(--vscode-terminal-green)]">
+                  root@portfolio
+                </span>
                 <span className="text-[var(--vscode-text)]">:</span>
                 <span className="text-[var(--vscode-terminal-blue)]">~</span>
                 <span className="text-[var(--vscode-text)]">$ </span>
@@ -400,11 +546,11 @@ export function BottomPanel() {
 
         {activeTab === "output" && panelHeight > 36 && (
           <div className="p-4 text-[12px] text-[var(--vscode-text-muted)] font-mono">
-            <div>[Info  - 10:42:15] Starting portfolio server...</div>
+            <div>[Info - 10:42:15] Starting portfolio server...</div>
             <div className="text-[var(--vscode-text)]">
-              [Info  - 10:42:16] Server running on http://localhost:3000
+              [Info - 10:42:16] Server running on http://localhost:3000
             </div>
-            <div>[Info  - 10:42:16] Watching for file changes...</div>
+            <div>[Info - 10:42:16] Watching for file changes...</div>
           </div>
         )}
 

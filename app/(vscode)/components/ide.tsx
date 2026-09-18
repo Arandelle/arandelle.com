@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import {
   GitBranch,
   Circle,
@@ -220,8 +220,10 @@ function IDEShell() {
 
 export function IDE({ data }: { data: PortfolioData }) {
   return (
-    <PortfolioProvider data={data}>
-      <IDEShell />
-    </PortfolioProvider>
+    <Suspense>
+      <PortfolioProvider data={data}>
+        <IDEShell />
+      </PortfolioProvider>
+    </Suspense>
   );
 }

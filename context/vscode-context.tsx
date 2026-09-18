@@ -6,8 +6,10 @@ import {
   useState,
   useCallback,
   useEffect,
+  useRef,
   type ReactNode,
 } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as LucideIcons from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Tab, FileId, SidebarPanel, PortfolioData } from "@/app/(vscode)/types";
@@ -96,8 +98,15 @@ export function PortfolioProvider({
   const [chatExpanded, setChatExpandedState] = useState(true);
   const [bottomPanelOpen, setBottomPanelOpenState] = useState(false);
 
-  // Hydrate from localStorage after mount to avoid SSR/client mismatch
+  // Hydrate from URL query param or localStorage after mount
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isInitialized = useRef(false);
+
   useEffect(() => {
+    if (isInitialized.current) return;
+    isInitialized.current = true;
+
     try {
       const savedTabs = localStorage.getItem("ide-open-tabs");
       if (savedTabs) {
@@ -113,7 +122,13 @@ export function PortfolioProvider({
       }
     } catch {}
 
-    setActiveTabIdState(localStorage.getItem("ide-active-tab") || null);
+    // URL takes priority over localStorage for active tab
+    const fileParam = searchParams.get("file");
+    if (fileParam) {
+      setActiveTabIdState(fileParam);
+    } else {
+      setActiveTabIdState(localStorage.getItem("ide-active-tab") || null);
+    }
 
     const chatSaved = localStorage.getItem("ide-chat-open");
     if (chatSaved === "true") setChatOpenState(true);
@@ -123,7 +138,7 @@ export function PortfolioProvider({
 
     const bottomSaved = localStorage.getItem("ide-bottom-panel-open");
     if (bottomSaved === "true") setBottomPanelOpenState(true);
-  }, []);
+  }, [searchParams]);
 
   // Persist state changes to localStorage
   useEffect(() => {
@@ -139,10 +154,23 @@ export function PortfolioProvider({
   useEffect(() => {
     if (activeTabId) {
       localStorage.setItem("ide-active-tab", activeTabId);
+      // Sync active tab to URL query param
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("file") !== activeTabId) {
+        params.set("file", activeTabId);
+        router.replace(`?${params.toString()}`, { scroll: false });
+      }
     } else {
       localStorage.removeItem("ide-active-tab");
+      // Remove file param when no tab is active
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("file")) {
+        params.delete("file");
+        const qs = params.toString();
+        router.replace(qs ? `?${qs}` : window.location.pathname, { scroll: false });
+      }
     }
-  }, [activeTabId]);
+  }, [activeTabId, router]);
 
   useEffect(() => {
     localStorage.setItem("ide-chat-open", String(chatOpen));

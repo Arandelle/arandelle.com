@@ -87,7 +87,7 @@ export function Sidebar() {
 /* ── Explorer Panel ─────────────────────────────────────────────────────── */
 
 function ExplorerPanel() {
-  const { data, openFile, closeSidebar } = usePortfolio();
+  const { data, openFile, closeSidebar, activeTabId } = usePortfolio();
 
   const projects = data.projects ?? staticProjects;
   const articles = data.articles ?? staticArticles;
@@ -146,6 +146,7 @@ function ExplorerPanel() {
           key={item.id}
           item={item}
           depth={0}
+          activeTabId={activeTabId}
           onFileClick={handleFileClick}
         />
       ))}
@@ -156,14 +157,17 @@ function ExplorerPanel() {
 function TreeNode({
   item,
   depth,
+  activeTabId,
   onFileClick,
 }: {
   item: FileItem;
   depth: number;
+  activeTabId: string | null;
   onFileClick: (item: FileItem) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const isFolder = !!item.children;
+  const isActive = !isFolder && activeTabId === item.id;
   const Icon = item.icon;
 
   return (
@@ -173,7 +177,11 @@ function TreeNode({
           if (isFolder) setExpanded((p) => !p);
           else onFileClick(item);
         }}
-        className="flex items-center w-full py-[3px] pr-2 text-[13px] hover:bg-[var(--vscode-line-highlight)] rounded-sm transition-colors"
+        className={`flex items-center w-full py-[3px] pr-2 text-[13px] rounded-sm transition-colors ${
+          isActive
+            ? "bg-[var(--vscode-list-hover)] text-[var(--vscode-text-bright)]"
+            : "hover:bg-[var(--vscode-line-highlight)]"
+        }`}
         style={{ paddingLeft: `${12 + depth * 16}px` }}
       >
         {isFolder && (
@@ -198,6 +206,7 @@ function TreeNode({
               key={child.id}
               item={child}
               depth={depth + 1}
+              activeTabId={activeTabId}
               onFileClick={onFileClick}
             />
           ))}

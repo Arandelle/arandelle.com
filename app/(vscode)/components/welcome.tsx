@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Code2, ArrowUpRight } from "lucide-react";
+import { Code2, ArrowUpRight, MessageSquare } from "lucide-react";
 import { usePortfolio } from "@/context/vscode-context";
 import { FileCode2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -18,11 +18,11 @@ interface Shortcut {
 }
 
 export function Welcome() {
-  const { openFile } = usePortfolio();
+  const { openFile, toggleChat } = usePortfolio();
   const router = useRouter();
 
   const shortcuts: Shortcut[] = [
-    { id: "about", name: "about.tsx", icon: FileCode2, iconColor: "#4ec9b0", label: "Open about.tsx", keyCombo: "Ctrl+Shift+A" },
+    { id: "about", name: "about.tsx", icon: FileCode2, iconColor: "#4ec9b0", label: "Open about.tsx", keyCombo: "Ctrl+Shift+B" },
   ];
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -31,11 +31,16 @@ export function Welcome() {
       return;
     }
 
-    if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === "A") {
+    if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === "B") {
       e.preventDefault();
       openFile("about", "about.tsx", FileCode2, "#4ec9b0");
     }
-  }, [openFile]);
+
+    if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === "I") {
+      e.preventDefault();
+      toggleChat();
+    }
+  }, [openFile, toggleChat]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -90,6 +95,17 @@ export function Welcome() {
               </button>
             );
           })}
+
+          <button
+            onClick={toggleChat}
+            className="flex items-center gap-3 w-full text-[13px] text-[var(--vscode-text)] hover:text-[var(--vscode-accent-hover)] hover:bg-[var(--vscode-line-highlight)] px-2 py-1 rounded-sm transition-colors"
+          >
+            <MessageSquare size={14} style={{ color: "#c586c0" }} strokeWidth={1.5} />
+            <span className="flex-1 text-left">Open AI Chat</span>
+            <kbd className="px-1.5 py-0.5 bg-[var(--vscode-input-bg)] border border-[var(--vscode-border)] rounded text-[11px] font-mono text-[var(--vscode-text-muted)]">
+              Ctrl+Shift+I
+            </kbd>
+          </button>
 
           {/* v0 link */}
           <div className="pt-3 border-t border-[var(--vscode-border)] mt-3">

@@ -3,19 +3,27 @@
 import {
   Terminal,
   ChevronDown,
-  AlertCircle,
-  Bug,
-  Plug,
   X,
   Plus,
   Trash2,
-  ChevronRight,
   ChevronDownIcon,
   Monitor,
+  FileCode2,
 } from "lucide-react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import AsciiPortrait from "@/components/portfolio/AsciiPortrait";
 import { usePortfolio } from "@/context/vscode-context";
+
+interface TerminalLine {
+  type: "command" | "output";
+  content: React.ReactNode;
+}
 
 const tabs = [
   { id: "problems", label: "PROBLEMS", count: 99 },
@@ -34,7 +42,78 @@ export function BottomPanel() {
   const dragStartHeight = useRef(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const selectorRef = useRef<HTMLDivElement>(null);
-  const { closeBottomPanel, isMobile } = usePortfolio();
+  const { closeBottomPanel, isMobile, toggleChat, chatOpen, openFile } =
+    usePortfolio();
+  const [terminalInput, setTerminalInput] = useState("");
+  const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([]);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+  const terminalInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTerminalSubmit = useCallback(() => {
+    const cmd = terminalInput.trim();
+    if (!cmd) return;
+
+    const newLines: TerminalLine[] = [{ type: "command", content: cmd }];
+
+    const lower = cmd.toLowerCase();
+    if (lower === "help") {
+      newLines.push({
+        type: "output",
+        content: (
+          <div className="text-[var(--vscode-text-muted)]">
+            <div>Available commands:</div>
+            <div className="ml-2 mt-1">about — Open about.tsx</div>
+            <div className="ml-2">chat — Open AI Chat</div>
+            <div className="ml-2">clear — Clear terminal</div>
+            <div className="ml-2">help — Show this message</div>
+          </div>
+        ),
+      });
+    } else if (lower === "about") {
+      openFile("about", "about.tsx", FileCode2, "#4ec9b0");
+    } else if (lower === "chat" || lower === "ai chat") {
+      if (!chatOpen) toggleChat();
+      newLines.push({
+        type: "output",
+        content: (
+          <span className="text-[var(--vscode-text-muted)]">
+            {chatOpen ? "AI Chat is already open." : "Opening AI Chat..."}
+          </span>
+        ),
+      });
+    } else if (lower === "clear") {
+      setTerminalHistory([]);
+      setTerminalInput("");
+      return;
+    } else {
+      newLines.push({
+        type: "output",
+        content: (
+          <span className="text-[var(--vscode-text-muted)]">
+            Command not found: {cmd}. Type <span className="italic">help</span>{" "}
+            for available commands.
+          </span>
+        ),
+      });
+    }
+
+    setTerminalHistory((prev) => [...prev, ...newLines]);
+    setTerminalInput("");
+  }, [terminalInput, toggleChat, chatOpen]);
+
+  const handleTerminalKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleTerminalSubmit();
+      }
+    },
+    [handleTerminalSubmit],
+  );
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [terminalHistory]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.ctrlKey && e.key === "`") {
@@ -136,7 +215,16 @@ export function BottomPanel() {
         <div className="flex-1 overflow-hidden relative">
           {activeTab === "terminal" && (
             <div className="h-full flex flex-col">
-              <div className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px]">
+              <div
+                onMouseDown={(e) => {
+                  const t = e.target as HTMLElement;
+                  if (t.tagName !== "INPUT" && t.tagName !== "A") {
+                    e.preventDefault();
+                    terminalInputRef.current?.focus();
+                  }
+                }}
+                className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px] cursor-text select-none"
+              >
                 <div className="text-[var(--vscode-terminal-banner)]">
                   Windows PowerShell
                 </div>
@@ -258,15 +346,48 @@ export function BottomPanel() {
                     1563ed0..f9c60fd main -&gt; main
                   </div>
                 </div>
-                <div className="mt-2">
-                  <span className="text-[var(--vscode-terminal-green)]">
+                {terminalHistory.map((line, i) => (
+                  <div key={`mob-${i}`} className="mt-1">
+                    {line.type === "command" ? (
+                      <div>
+                        <span className="text-[var(--vscode-terminal-green)]">
+                          root@portfolio
+                        </span>
+                        <span className="text-[var(--vscode-text)]">:</span>
+                        <span className="text-[var(--vscode-terminal-blue)]">
+                          ~
+                        </span>
+                        <span className="text-[var(--vscode-text)]">
+                          $ {String(line.content)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div>{line.content}</div>
+                    )}
+                  </div>
+                ))}
+                <div className="mt-2 flex items-center">
+                  <span className="text-[var(--vscode-terminal-green)] shrink-0">
                     root@portfolio
                   </span>
-                  <span className="text-[var(--vscode-text)]">:</span>
-                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
-                  <span className="text-[var(--vscode-text)]">$ </span>
-                  <span className="inline-block w-2 h-4 bg-[var(--vscode-text)] animate-pulse" />
+                  <span className="text-[var(--vscode-text)] shrink-0">:</span>
+                  <span className="text-[var(--vscode-terminal-blue)] shrink-0">
+                    ~
+                  </span>
+                  <span className="text-[var(--vscode-text)] shrink-0">$ </span>
+                  <input
+                    ref={terminalInputRef}
+                    type="text"
+                    value={terminalInput}
+                    onChange={(e) => setTerminalInput(e.target.value)}
+                    onKeyDown={handleTerminalKeyDown}
+                    placeholder="Type help for commands"
+                    className="flex-1 bg-transparent border-none outline-none text-[var(--vscode-text)] font-mono text-[12px] placeholder:text-[var(--vscode-text-muted)] placeholder:italic min-w-0"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
                 </div>
+                <div ref={terminalEndRef} />
               </div>
             </div>
           )}
@@ -444,7 +565,16 @@ export function BottomPanel() {
             )}
 
             {/* Terminal content */}
-            <div className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px]">
+            <div
+              onMouseDown={(e) => {
+                const t = e.target as HTMLElement;
+                if (t.tagName !== "INPUT" && t.tagName !== "A") {
+                  e.preventDefault();
+                  terminalInputRef.current?.focus();
+                }
+              }}
+              className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px] cursor-text select-none"
+            >
               <div className="mt-3">
                 <span className="text-[var(--vscode-terminal-green)]">
                   PS C:\Users\my-portfolio\arandelle\arandelle.com&gt;
@@ -478,7 +608,7 @@ export function BottomPanel() {
                 <span className="text-[var(--vscode-text)]">:</span>
                 <span className="text-[var(--vscode-terminal-blue)]">~</span>
                 <span>
-                   ${" "}
+                  ${" "}
                   <span className="text-[var(--vscode-terminal-yellow)]">
                     git
                   </span>
@@ -525,15 +655,48 @@ export function BottomPanel() {
                   1563ed0..f9c60fd main -&gt; main
                 </div>
               </div>
-              <div className="mt-2">
-                <span className="text-[var(--vscode-terminal-green)]">
+              {terminalHistory.map((line, i) => (
+                <div key={`desk-${i}`} className="mt-1">
+                  {line.type === "command" ? (
+                    <div>
+                      <span className="text-[var(--vscode-terminal-green)]">
+                        root@portfolio
+                      </span>
+                      <span className="text-[var(--vscode-text)]">:</span>
+                      <span className="text-[var(--vscode-terminal-blue)]">
+                        ~
+                      </span>
+                      <span className="text-[var(--vscode-text)]">
+                        $ {String(line.content)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div>{line.content}</div>
+                  )}
+                </div>
+              ))}
+              <div className="mt-2 flex items-center">
+                <span className="text-[var(--vscode-terminal-green)] shrink-0">
                   root@portfolio
                 </span>
-                <span className="text-[var(--vscode-text)]">:</span>
-                <span className="text-[var(--vscode-terminal-blue)]">~</span>
-                <span className="text-[var(--vscode-text)]">$ </span>
-                <span className="inline-block w-2 h-4 bg-[var(--vscode-text)] animate-pulse" />
+                <span className="text-[var(--vscode-text)] shrink-0">:</span>
+                <span className="text-[var(--vscode-terminal-blue)] shrink-0">
+                  ~
+                </span>
+                <span className="text-[var(--vscode-text)] shrink-0">$ </span>
+                <input
+                  ref={terminalInputRef}
+                  type="text"
+                  value={terminalInput}
+                  onChange={(e) => setTerminalInput(e.target.value)}
+                  onKeyDown={handleTerminalKeyDown}
+                  placeholder="Type help for commands"
+                  className="flex-1 bg-transparent border-none outline-none text-[var(--vscode-text)] font-mono text-[12px] placeholder:text-[var(--vscode-text-muted)] placeholder:italic min-w-0"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
               </div>
+              <div ref={terminalEndRef} />
             </div>
           </div>
         )}

@@ -125,3 +125,24 @@
 .vscode-ide a:hover {
   text-decoration: underline;
 }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ── Editor ── */
+.editor-line {
+  min-height: 22px;
+  line-height: 22px;
+}
+
+/* Active line highlight in gutter */
+.gutter-active {
+  color: var(--vscode-text-bright);
+}

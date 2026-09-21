@@ -165,7 +165,7 @@ function IDEShell() {
           <div className="flex flex-1 overflow-hidden">
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
               <TabBar />
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-hidden">
                 <Editor />
               </div>
             </div>

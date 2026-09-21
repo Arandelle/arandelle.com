@@ -3,7 +3,8 @@
     "allow": [
       "Skill(bryl-minimal-design)",
       "WebFetch(bryllim.com)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Agent(Explore)"
     ]
   },
   "$version": 4

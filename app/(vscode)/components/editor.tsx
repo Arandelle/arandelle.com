@@ -1,10 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import { ExternalLink, MapPin, Calendar } from "lucide-react";
+import { useState, useCallback, useEffect, useRef, useMemo, forwardRef } from "react";
 import { usePortfolio } from "@/context/vscode-context";
 import { Welcome } from "./welcome";
-import AsciiPortrait from "@/components/portfolio/AsciiPortrait";
 import {
   projects as staticProjects,
   articles as staticArticles,
@@ -15,567 +13,718 @@ import {
   socials as staticSocials,
 } from "@/lib/data";
 
+const LINE_HEIGHT = 22;
+
 export function Editor() {
   const { activeTabId, data } = usePortfolio();
 
   if (!activeTabId) return <Welcome />;
 
   return (
-    <div className="flex-1 overflow-y-auto flex">
-      <LineNumbers />
-      <div className="flex-1 min-w-0 px-4 sm:px-6 md:px-8 py-6">
-        <FileContent fileId={activeTabId} data={data} />
-      </div>
+    <div className="flex-1 h-full flex cursor-text overflow-hidden">
+      <EditorContent fileId={activeTabId} data={data} />
     </div>
   );
 }
 
-function LineNumbers() {
-  const lines = useMemo(() => Array.from({ length: 80 }, (_, i) => i + 1), []);
-  return (
-    <div className="hidden md:flex flex-col shrink-0 w-12 pt-6 pr-4 text-right border-r border-[var(--vscode-border)] sticky top-0 h-fit self-start">
-      {lines.map((n) => (
-        <div
-          key={n}
-          className="text-[11px] leading-[22px] text-[var(--vscode-text-muted)] select-none font-mono"
-        >
-          {n}
-        </div>
-      ))}
-    </div>
-  );
-}
+/* ── Core: line-synchronized editor ───────────────────────────────────── */
 
-function FileContent({
+function EditorContent({
   fileId,
   data,
 }: {
   fileId: string;
   data: ReturnType<typeof usePortfolio>["data"];
 }) {
-  if (fileId === "about") return <AboutRenderer data={data} />;
-  if (fileId === "experience") return <ExperienceRenderer data={data} />;
-  if (fileId.startsWith("project-"))
-    return <ProjectRenderer fileId={fileId} data={data} />;
-  if (fileId.startsWith("article-"))
-    return <ArticleRenderer fileId={fileId} data={data} />;
+  const { isAdmin, setData } = usePortfolio();
+  const [lines, setLines] = useState<string[]>([""]);
+  const [cursorLine, setCursorLine] = useState(0);
+  const [cursorCol, setCursorCol] = useState(0);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
+
+  // Generate initial content from data when file changes
+  useEffect(() => {
+    const content = generateFileContent(fileId, data);
+    setLines(content.split("\n"));
+    setCursorLine(0);
+    setCursorCol(0);
+    setDirty(false);
+    setSaveStatus("idle");
+  }, [fileId, data]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setLines(value.split("\n"));
+    setDirty(true);
+    setSaveStatus("idle");
+  }, []);
+
+  const handleSelect = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const textBefore = ta.value.slice(0, pos);
+    const linesBefore = textBefore.split("\n");
+    setCursorLine(linesBefore.length - 1);
+    setCursorCol(linesBefore[linesBefore.length - 1].length);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!isAdmin || !dirty) return;
+    setSaving(true);
+    try {
+      const content = lines.join("\n");
+      const parsed = parseFileContent(fileId, content);
+      if (parsed) {
+        setData(prev => ({ ...prev, ...parsed }));
+        // Also persist to API
+        await saveToApi(fileId, parsed);
+        setDirty(false);
+        setSaveStatus("saved");
+        setTimeout(() => setSaveStatus("idle"), 2000);
+      }
+    } catch {
+      setSaveStatus("error");
+    }
+    setSaving(false);
+  }, [isAdmin, dirty, fileId, lines, setData]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      handleSave();
+      return;
+    }
+    if (!isAdmin) return;
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+      ta.value = val.slice(0, start) + "  " + val.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      setLines(ta.value.split("\n"));
+      setDirty(true);
+    }
+  }, [isAdmin, handleSave]);
+
+  // Sync scroll between textarea, overlay, and gutter
+  const handleScroll = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    if (overlayRef.current) {
+      overlayRef.current.scrollTop = ta.scrollTop;
+      overlayRef.current.scrollLeft = ta.scrollLeft;
+    }
+    if (gutterRef.current) {
+      gutterRef.current.scrollTop = ta.scrollTop;
+    }
+  }, []);
+
+  const rawText = lines.join("\n");
+
+  // Shared styles that MUST be identical between textarea and overlay
+  const editorFontStyle: React.CSSProperties = {
+    fontFamily: '"Geist Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace',
+    fontSize: '13px',
+    lineHeight: '22px',
+    letterSpacing: 'normal',
+    wordSpacing: 'normal',
+    tabSize: 2,
+    whiteSpace: 'pre',
+    overflowWrap: 'normal',
+    wordBreak: 'keep-all',
+    padding: '0 24px',
+    margin: 0,
+    border: 'none',
+  };
 
   return (
-    <div className="text-[var(--vscode-text-muted)]">
-      <span className="text-[var(--vscode-accent)]">{"// "}</span>
-      File not found
-    </div>
+    <>
+      <Gutter ref={gutterRef} lineCount={lines.length} activeLine={cursorLine} />
+      <div className="flex-1 min-w-0 relative h-full overflow-hidden">
+        <div className="absolute inset-0">
+          {/* Syntax-highlighted overlay */}
+          <div
+            ref={overlayRef}
+            className="absolute inset-0 pointer-events-none overflow-hidden"
+            style={{ ...editorFontStyle }}
+            aria-hidden
+          >
+            {lines.map((line, i) => (
+              <div key={i} style={{ minHeight: LINE_HEIGHT }}>
+                <ColorizedLine text={line} fileId={fileId} />
+                {line === "" && "\n"}
+              </div>
+            ))}
+          </div>
+
+          {/* Textarea — readOnly for visitors, editable for admin */}
+          <textarea
+            ref={textareaRef}
+            value={rawText}
+            onChange={isAdmin ? handleChange : undefined}
+            onSelect={handleSelect}
+            onKeyDown={handleKeyDown}
+            onScroll={handleScroll}
+            readOnly={!isAdmin}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            className={`absolute inset-0 w-full h-full outline-none resize-none bg-transparent text-transparent caret-[var(--vscode-accent)] selection:bg-[var(--vscode-selection)] overflow-auto ${!isAdmin ? "cursor-default" : ""}`}
+            style={editorFontStyle}
+          />
+        </div>
+
+        {/* Save indicator for admin */}
+        {isAdmin && (
+          <div className="absolute top-2 right-4 flex items-center gap-2 z-10">
+            {dirty && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-3 py-1 text-[11px] font-mono bg-[var(--vscode-accent)] hover:bg-[var(--vscode-accent-hover)] text-white rounded-sm transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Ctrl+S to save"}
+              </button>
+            )}
+            {saveStatus === "saved" && (
+              <span className="text-[11px] font-mono text-green-500">✓ Saved</span>
+            )}
+            {saveStatus === "error" && (
+              <span className="text-[11px] font-mono text-red-500">✗ Save failed</span>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
-/* ── Shared components ──────────────────────────────────────────────────── */
+/* ── Gutter ───────────────────────────────────────────────────────────── */
 
-function FileHeader({ name }: { name: string }) {
-  return (
-    <div className="mb-6">
-      <span className="text-[var(--vscode-text-muted)] text-[11px] font-mono uppercase tracking-wider">
-        {name}
-      </span>
-    </div>
+const Gutter = forwardRef<HTMLDivElement, { lineCount: number; activeLine: number }>(
+  function Gutter({ lineCount, activeLine }, ref) {
+    const nums = useMemo(() => Array.from({ length: lineCount }, (_, i) => i + 1), [lineCount]);
+
+    return (
+      <div
+        ref={ref}
+        className="hidden md:flex flex-col shrink-0 w-12 pr-4 text-right border-r border-[var(--vscode-border)] select-none overflow-hidden"
+      >
+        {nums.map((n) => (
+          <div
+            key={n}
+            className={`text-[11px] font-mono shrink-0 ${
+              n - 1 === activeLine
+                ? "text-[var(--vscode-text-bright)]"
+                : "text-[var(--vscode-text-muted)]"
+            }`}
+            style={{ height: LINE_HEIGHT, lineHeight: `${LINE_HEIGHT}px` }}
+          >
+            {n}
+          </div>
+        ))}
+      </div>
+    );
+  }
+);
+
+/* ── Syntax colorization ──────────────────────────────────────────────── */
+
+function ColorizedLine({ text, fileId }: { text: string; fileId: string }) {
+  if (!text) return null;
+
+  // Comments
+  if (text.trimStart().startsWith("//")) {
+    return <span className="text-[var(--vscode-text-muted)]">{text}</span>;
+  }
+  if (text.trimStart().startsWith("/*") || text.trimStart().startsWith("*") || text.trimStart().endsWith("*/")) {
+    return <span className="text-[var(--vscode-text-muted)] italic">{text}</span>;
+  }
+
+  // Keywords & exports
+  const parts: React.ReactNode[] = [];
+  const keywordRegex = /\b(export|const|let|var|function|return|import|from|type|interface|class|default|async|await|if|else|for|while|switch|case|break|true|false|null|undefined)\b/g;
+  const stringRegex = /("[^"]*"|'[^']*'|`[^`]*`)/g;
+  const bracketRegex = /([{}[\]()])/g;
+  const combined = new RegExp(
+    `(${keywordRegex.source})|(${stringRegex.source})|(${bracketRegex.source})`,
+    "g"
   );
+
+  let lastIdx = 0;
+  let m;
+  while ((m = combined.exec(text)) !== null) {
+    if (m.index > lastIdx) {
+      parts.push(<span key={`t-${lastIdx}`} className="text-[var(--vscode-text)]">{text.slice(lastIdx, m.index)}</span>);
+    }
+    if (m[1]) {
+      // keyword
+      parts.push(<span key={`k-${m.index}`} className="text-[#c586c0] dark:text-[#c586c0]">{m[0]}</span>);
+    } else if (m[2]) {
+      // string
+      parts.push(<span key={`s-${m.index}`} className="text-[#ce9178] dark:text-[#ce9178]">{m[0]}</span>);
+    } else if (m[3]) {
+      // bracket
+      parts.push(<span key={`b-${m.index}`} className="text-[#ffd700] dark:text-[#ffd700]">{m[0]}</span>);
+    }
+    lastIdx = m.index + m[0].length;
+  }
+  if (lastIdx < text.length) {
+    parts.push(<span key={`t-${lastIdx}`} className="text-[var(--vscode-text)]">{text.slice(lastIdx)}</span>);
+  }
+
+  return <>{parts}</>;
 }
 
-function CodeLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[var(--vscode-accent)] font-mono text-[12px]">
-      {children}
-    </span>
-  );
+/* ── Content generator: turns structured data into text lines ─────────── */
+
+function escapeStr(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
 }
 
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="px-2 py-0.5 text-[11px] font-mono bg-[var(--vscode-line-highlight)] border border-[var(--vscode-border)] rounded-sm text-[var(--vscode-text)]">
-      {children}
-    </span>
-  );
+function generateFileContent(
+  fileId: string,
+  data: ReturnType<typeof usePortfolio>["data"],
+): string {
+  if (fileId === "about") return generateAbout(data);
+  if (fileId === "experience") return generateExperience(data);
+  if (fileId.startsWith("project-")) return generateProject(fileId, data);
+  if (fileId.startsWith("article-")) return generateArticle(fileId, data);
+  return "// File not found";
 }
 
-/* ── About ──────────────────────────────────────────────────────────────── */
-
-function AboutRenderer({
-  data,
-}: {
-  data: ReturnType<typeof usePortfolio>["data"];
-}) {
+function generateAbout(data: ReturnType<typeof usePortfolio>["data"]): string {
   const profile = data.profile ?? staticProfile;
   const expertiseData = data.expertise ?? staticExpertise;
   const certs = data.certifications ?? staticCertifications;
   const socials = data.socials ?? staticSocials;
 
-  return (
-    <div className="max-w-[700px]">
-      <FileHeader name="about.tsx" />
+  const lines: string[] = [];
+  lines.push("about.tsx");
+  lines.push("");
+  lines.push(`// ${profile.name}`);
+  lines.push(`// ${profile.role}`);
+  lines.push(`// ${profile.location} · ${profile.email}`);
+  lines.push("");
+  lines.push("export const bio = [");
+  for (const p of profile.bioParagraphs) {
+    lines.push(`  "${escapeStr(p)}",`);
+  }
+  lines.push("];");
+  lines.push("");
+  lines.push("export const expertise = {");
+  for (const group of expertiseData) {
+    const heading = group.heading ?? (group as Record<string, unknown>).name as string ?? "";
+    lines.push(`  "${escapeStr(heading)}": [`);
+    for (const skill of group.skills ?? []) {
+      lines.push(`    "${escapeStr(skill)}",`);
+    }
+    lines.push("  ],");
+  }
+  lines.push("};");
+  lines.push("");
 
-      {/* ASCII Portrait */}
-      <div className="mb-8 p-4 bg-[var(--vscode-input-bg,#2a2a2a)] border border-[var(--vscode-border)] rounded">
-        <div className="flex items-center gap-2 mb-3 text-[11px] font-mono text-[var(--vscode-text-muted)]">
-          <span className="text-[var(--vscode-accent,#569cd6)]">$</span>
-          <span>cat portrait.ascii</span>
-        </div>
-        <AsciiPortrait width={50} />
-      </div>
+  if (certs.length > 0) {
+    lines.push("export const certifications = [");
+    for (const cert of certs) {
+      const year = cert.date
+        ? typeof cert.date === "string" ? cert.date : new Date(cert.date).getFullYear()
+        : "";
+      lines.push(`  { name: "${escapeStr(cert.name)}", issuer: "${escapeStr(cert.issuer)}"${year ? `, date: "${year}"` : ""} },`);
+    }
+    lines.push("];");
+    lines.push("");
+  }
 
-      <div className="mb-8">
-        <CodeLabel>{"// "}</CodeLabel>
-        <CodeLabel>{profile.name}</CodeLabel>
-        <h1 className="text-[28px] font-semibold text-[var(--vscode-text-bright)] mt-2 mb-1">
-          {profile.name}
-        </h1>
-        <div className="flex items-center gap-4 text-[var(--vscode-text-muted)] text-[13px]">
-          <span className="flex items-center gap-1.5">
-            <MapPin size={13} /> {profile.location}
-          </span>
-          <a
-            href={`mailto:${profile.email}`}
-            className="hover:text-[var(--vscode-accent-hover)]"
-          >
-            {profile.email}
-          </a>
-        </div>
-        <div className="mt-1">
-          <span className="text-[var(--vscode-text-bright)] text-[14px]">
-            {profile.role}
-          </span>
-        </div>
-      </div>
+  lines.push("export const socials = [");
+  for (const s of socials) {
+    lines.push(`  { label: "${escapeStr(s.label)}", href: "${escapeStr(s.href)}" },`);
+  }
+  lines.push("];");
 
-      <div className="mb-8 space-y-3">
-        <CodeLabel>{"export const bio = "}</CodeLabel>
-        {profile.bioParagraphs.map((p, i) => (
-          <p key={i} className="text-[14px] leading-[1.7] text-[var(--vscode-text)]">
-            {p}
-          </p>
-        ))}
-      </div>
-
-      <div className="mb-8">
-        <CodeLabel>{"export const expertise = {"}</CodeLabel>
-        <div className="mt-3 space-y-4">
-          {expertiseData.map((group, i) => (
-            <div key={i} className="pl-4">
-              <div className="text-[14px] font-medium text-[var(--vscode-text-bright)] mb-2">
-                {group.heading ?? (group as Record<string, unknown>).name as string}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(group.skills ?? []).map((skill) => (
-                  <Pill key={skill}>{skill}</Pill>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <CodeLabel>{"}"}</CodeLabel>
-      </div>
-
-      {certs.length > 0 && (
-        <div className="mb-8">
-          <CodeLabel>{"export const certifications = ["}</CodeLabel>
-          <div className="mt-3 space-y-2 pl-4">
-            {certs.map((cert, i) => (
-              <div key={i} className="flex items-center gap-2 text-[13px]">
-                <span className="text-[var(--vscode-text-muted)]">
-                  {cert.issuer}
-                </span>
-                <span className="text-[var(--vscode-text)]">{cert.name}</span>
-                {cert.date && (
-                  <span className="text-[var(--vscode-text-muted)] text-[11px]">
-                    ({typeof cert.date === "string" ? cert.date : new Date(cert.date).getFullYear()})
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          <CodeLabel>{"]"}</CodeLabel>
-        </div>
-      )}
-
-      <div>
-        <CodeLabel>{"export const socials = ["}</CodeLabel>
-        <div className="mt-3 flex gap-4 pl-4">
-          {socials.map((social) => (
-            <a
-              key={social.label}
-              href={social.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-[13px] hover:text-[var(--vscode-accent-hover)]"
-            >
-              {social.label}
-              <ExternalLink size={12} />
-            </a>
-          ))}
-        </div>
-        <CodeLabel>{"]"}</CodeLabel>
-      </div>
-    </div>
-  );
+  return lines.join("\n");
 }
 
-/* ── Experience ─────────────────────────────────────────────────────────── */
-
-function ExperienceRenderer({
-  data,
-}: {
-  data: ReturnType<typeof usePortfolio>["data"];
-}) {
+function generateExperience(data: ReturnType<typeof usePortfolio>["data"]): string {
   const experiences = data.experiences ?? staticExperiences;
+  const lines: string[] = [];
+  lines.push("experience.tsx");
+  lines.push("");
+  lines.push("export const experiences = [");
 
-  return (
-    <div className="max-w-[700px]">
-      <FileHeader name="experience.tsx" />
+  for (const exp of experiences) {
+    const raw = exp as Record<string, unknown>;
+    const title = (exp.title ?? raw.role ?? "Developer") as string;
+    const isCurrent = (raw.current ?? exp.isCurrent ?? false) as boolean;
+    const startDate = exp.startDate
+      ? typeof exp.startDate === "string" ? exp.startDate : new Date(exp.startDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+      : "";
+    const endDate = exp.endDate
+      ? typeof exp.endDate === "string" ? exp.endDate : new Date(exp.endDate).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+      : "Present";
+    const techs = (raw.technologies as string[] | undefined) ?? [];
 
-      <CodeLabel>{"export const experiences = ["}</CodeLabel>
+    lines.push("  {");
+    lines.push(`    title: "${escapeStr(title)}",`);
+    lines.push(`    company: "${escapeStr(exp.company)}",`);
+    if (raw.location) lines.push(`    location: "${escapeStr(raw.location as string)}",`);
+    lines.push(`    period: "${escapeStr(startDate)} — ${isCurrent ? "Present" : escapeStr(endDate)}",`);
+    lines.push(`    description: "${escapeStr(exp.description)}",`);
+    if (techs.length) {
+      lines.push(`    technologies: [`);
+      for (const t of techs) lines.push(`      "${escapeStr(t)}",`);
+      lines.push(`    ],`);
+    }
+    lines.push("  },");
+    lines.push("");
+  }
 
-      <div className="mt-4 space-y-6">
-        {experiences.map((exp, i) => {
-          const raw = exp as Record<string, unknown>;
-          const title = (exp.title ?? raw.role ?? "Developer") as string;
-          const isCurrent = (raw.current ?? exp.isCurrent ?? false) as boolean;
-          const startDate = exp.startDate
-            ? typeof exp.startDate === "string"
-              ? exp.startDate
-              : new Date(exp.startDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  year: "numeric",
-                })
-            : "";
-          const endDate = exp.endDate
-            ? typeof exp.endDate === "string"
-              ? exp.endDate
-              : new Date(exp.endDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  year: "numeric",
-                })
-            : "Present";
-
-          return (
-            <div
-              key={i}
-              className="pl-4 border-l-2 border-[var(--vscode-border)] hover:border-[var(--vscode-accent)] transition-colors"
-            >
-              <h3 className="text-[16px] font-semibold text-[var(--vscode-text-bright)]">
-                {title}
-              </h3>
-              <div className="flex items-center gap-2 mt-1 text-[13px]">
-                <a
-                  href={(raw.companyUrl as string) ?? "#"}
-                  className="text-[var(--vscode-accent)] hover:text-[var(--vscode-accent-hover)]"
-                >
-                  {exp.company}
-                </a>
-                {(raw.location as string | undefined) && (
-                  <>
-                    <span className="text-[var(--vscode-text-muted)]">·</span>
-                    <span className="text-[var(--vscode-text-muted)] flex items-center gap-1">
-                      <MapPin size={11} /> {raw.location as string}
-                    </span>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 text-[12px] text-[var(--vscode-text-muted)] mt-1">
-                <Calendar size={11} />
-                <span>
-                  {startDate} — {isCurrent ? "Present" : endDate}
-                </span>
-                {isCurrent && (
-                  <span className="px-1.5 py-0.5 text-[10px] bg-[var(--vscode-accent)] text-white rounded-sm font-mono uppercase">
-                    current
-                  </span>
-                )}
-              </div>
-              <p className="text-[13px] text-[var(--vscode-text)] mt-3 leading-[1.65]">
-                {exp.description}
-              </p>
-              {(raw.technologies as string[] | undefined)?.length ? (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {(raw.technologies as string[]).map((tech) => (
-                    <Pill key={tech}>{tech}</Pill>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6">
-        <CodeLabel>{"];"}</CodeLabel>
-      </div>
-    </div>
-  );
+  lines.push("];");
+  return lines.join("\n");
 }
 
-/* ── Project ────────────────────────────────────────────────────────────── */
-
-function ProjectRenderer({
-  fileId,
-  data,
-}: {
-  fileId: string;
-  data: ReturnType<typeof usePortfolio>["data"];
-}) {
+function generateProject(fileId: string, data: ReturnType<typeof usePortfolio>["data"]): string {
   const projects = data.projects ?? staticProjects;
   const slug = fileId.replace("project-", "");
-  const project = projects.find(
-    (p) => p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug,
-  );
+  const project = projects.find(p => p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug);
 
-  if (!project) {
-    return (
-      <div className="text-[var(--vscode-text-muted)]">
-        <span className="text-[var(--vscode-accent)]">{"// "}</span>
-        Project not found
-      </div>
-    );
-  }
+  if (!project) return "// Project not found";
 
   const tags = ((project as unknown as Record<string, unknown>).tags as string[] | undefined) ?? [];
   const image = (project as unknown as Record<string, unknown>).image as string | null | undefined;
+  const lines: string[] = [];
 
-  return (
-    <div className="max-w-[700px]">
-      <FileHeader name={`${slug}.tsx`} />
+  lines.push(`${slug}.tsx`);
+  lines.push("");
+  lines.push(`// ${project.name}`);
+  lines.push("");
+  lines.push(`const description = "${escapeStr(project.description)}";`);
+  lines.push("");
 
-      <h1 className="text-[24px] font-semibold text-[var(--vscode-text-bright)] mb-4">
-        {project.name}
-      </h1>
+  if (tags.length) {
+    lines.push("const techStack = [");
+    for (const tag of tags) lines.push(`  "${escapeStr(tag)}",`);
+    lines.push("];");
+    lines.push("");
+  }
 
-      <CodeLabel>{"const description = "}</CodeLabel>
-      <p className="text-[14px] text-[var(--vscode-text)] leading-[1.7] mt-2 mb-6">
-        {project.description}
-      </p>
+  if (image) {
+    lines.push(`// preview: ${image}`);
+    lines.push("");
+  }
 
-      {tags.length > 0 && (
-        <div className="mb-6">
-          <CodeLabel>{"const techStack = ["}</CodeLabel>
-          <div className="flex flex-wrap gap-1.5 mt-2 pl-4">
-            {tags.map((tag) => (
-              <Pill key={tag}>{tag}</Pill>
-            ))}
-          </div>
-          <CodeLabel>{"];"}</CodeLabel>
-        </div>
-      )}
+  if (project.url && project.url !== "#") {
+    lines.push(`export const liveUrl = "${project.url}";`);
+  }
 
-      {image && (
-        <div className="mb-6">
-          <CodeLabel>{"// preview"}</CodeLabel>
-          <div className="mt-2 rounded border border-[var(--vscode-border)] overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={image}
-              alt={project.name}
-              className="w-full h-auto"
-            />
-          </div>
-        </div>
-      )}
-
-      {project.url && project.url !== "#" && (
-        <div>
-          <CodeLabel>{"export const liveUrl = "}</CodeLabel>
-          <a
-            href={project.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-2 px-4 py-2 bg-[var(--vscode-accent)] hover:bg-[var(--vscode-accent-hover)] text-white rounded text-[13px] transition-colors"
-          >
-            Visit Project <ExternalLink size={13} />
-          </a>
-        </div>
-      )}
-    </div>
-  );
+  return lines.join("\n");
 }
 
-/* ── Article ────────────────────────────────────────────────────────────── */
-
-function ArticleRenderer({
-  fileId,
-  data,
-}: {
-  fileId: string;
-  data: ReturnType<typeof usePortfolio>["data"];
-}) {
+function generateArticle(fileId: string, data: ReturnType<typeof usePortfolio>["data"]): string {
   const articles = data.articles ?? staticArticles;
   const slug = fileId.replace("article-", "");
-  const article = articles.find((a) => a.slug === slug);
+  const article = articles.find(a => a.slug === slug);
 
-  if (!article) {
-    return (
-      <div className="text-[var(--vscode-text-muted)]">
-        <span className="text-[var(--vscode-accent)]">{"// "}</span>
-        Article not found
-      </div>
-    );
-  }
+  if (!article) return "// Article not found";
 
   const date = article.date
-    ? typeof article.date === "string"
-      ? article.date
-      : new Date(article.date).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })
+    ? typeof article.date === "string" ? article.date : new Date(article.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
     : "";
 
-  return (
-    <div className="max-w-[700px]">
-      <FileHeader name={`${slug}.mdx`} />
+  const lines: string[] = [];
+  lines.push(`${slug}.mdx`);
+  lines.push("");
+  lines.push(`// ${date}`);
+  lines.push("");
+  lines.push(`# ${article.title}`);
+  lines.push("");
+  lines.push(`/* ${article.excerpt} */`);
+  lines.push("");
+  lines.push(article.content);
 
-      <div className="flex items-center gap-3 text-[12px] text-[var(--vscode-text-muted)] mb-4">
-        <span>{date}</span>
-        {((article as unknown as Record<string, unknown>).readingTime as string | undefined) ? (
-          <>
-            <span>·</span>
-            <span>{(article as unknown as Record<string, unknown>).readingTime as string}</span>
-          </>
-        ) : null}
-      </div>
-
-      <h1 className="text-[24px] font-semibold text-[var(--vscode-text-bright)] mb-4">
-        {article.title}
-      </h1>
-
-      <CodeLabel>{"/*"}</CodeLabel>
-      <p className="text-[13px] text-[var(--vscode-text-muted)] italic my-1">
-        {article.excerpt}
-      </p>
-      <CodeLabel>{"*/"}</CodeLabel>
-
-      <div className="mt-6 prose-content">
-        <MarkdownContent content={article.content} />
-      </div>
-    </div>
-  );
+  return lines.join("\n");
 }
 
-function MarkdownContent({ content }: { content: string }) {
+/* ── Parse edited text back to structured data ──────────────────────── */
+
+function parseFileContent(
+  fileId: string,
+  content: string,
+): Partial<ReturnType<typeof usePortfolio>["data"]> | null {
+  try {
+    if (fileId === "about") return parseAbout(content);
+    if (fileId === "experience") return parseExperience(content);
+    if (fileId.startsWith("article-")) return parseArticle(fileId, content);
+    // Projects are simpler — just update description/url from text
+    if (fileId.startsWith("project-")) return parseProject(fileId, content);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function extractStringArray(text: string, varName: string): string[] {
+  const regex = new RegExp(`${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]`);
+  const match = text.match(regex);
+  if (!match) return [];
+  const inner = match[1];
+  const items: string[] = [];
+  const strRegex = /"([^"]*)"/g;
+  let m;
+  while ((m = strRegex.exec(inner)) !== null) {
+    items.push(m[1]);
+  }
+  return items;
+}
+
+function extractString(text: string, varName: string): string {
+  const regex = new RegExp(`${varName}\\s*=\\s*"([^"]*)"`);
+  const match = text.match(regex);
+  return match ? match[1] : "";
+}
+
+function parseAbout(content: string): Partial<ReturnType<typeof usePortfolio>["data"]> {
+  const bioParagraphs = extractStringArray(content, "bio");
+
+  // Parse expertise object
+  const expertiseMatch = content.match(/export const expertise = \{([\s\S]*?)\};/);
+  let expertise: { heading: string; skills: string[] }[] = [];
+  if (expertiseMatch) {
+    const block = expertiseMatch[1];
+    const groupRegex = /"([^"]*)":\s*\[([\s\S]*?)\]/g;
+    let gm;
+    while ((gm = groupRegex.exec(block)) !== null) {
+      const heading = gm[1];
+      const skills: string[] = [];
+      const skillRegex = /"([^"]*)"/g;
+      let sm;
+      while ((sm = skillRegex.exec(gm[2])) !== null) {
+        skills.push(sm[1]);
+      }
+      expertise.push({ heading, skills });
+    }
+  }
+
+  // Parse profile from comments
+  const nameMatch = content.match(/^\/\/ (.+)$/m);
+  const roleLine = content.split("\n").find(l => l.startsWith("// ") && !l.includes("·"));
+  const contactLine = content.split("\n").find(l => l.includes("·"));
+
+  const result: Partial<ReturnType<typeof usePortfolio>["data"]> = {};
+  if (bioParagraphs.length) {
+    result.profile = {
+      name: nameMatch ? nameMatch[1] : staticProfile.name,
+      role: roleLine ? roleLine.replace("// ", "") : staticProfile.role,
+      location: contactLine ? contactLine.replace("// ", "").split(" · ")[0] : staticProfile.location,
+      email: contactLine ? contactLine.split(" · ")[1]?.trim() || staticProfile.email : staticProfile.email,
+      bioParagraphs,
+    };
+  }
+  if (expertise.length) result.expertise = expertise;
+
+  return result;
+}
+
+function parseExperience(content: string): Partial<ReturnType<typeof usePortfolio>["data"]> {
+  // Simple parse: extract experience blocks
+  const experiences: ReturnType<typeof usePortfolio>["data"]["experiences"] = [];
+  const blocks = content.split(/^\s*\},?\s*$/m).filter(b => b.trim().startsWith("{"));
+
+  for (const block of blocks) {
+    const title = extractString(block, "title");
+    const company = extractString(block, "company");
+    const description = extractString(block, "description");
+    const technologies = extractStringArray(block, "technologies");
+    if (title && company) {
+      experiences.push({ title, company, description, technologies });
+    }
+  }
+
+  return experiences.length ? { experiences } : {};
+}
+
+function parseArticle(fileId: string, content: string): Partial<ReturnType<typeof usePortfolio>["data"]> {
+  const slug = fileId.replace("article-", "");
   const lines = content.split("\n");
 
-  return (
-    <div className="space-y-3 text-[14px] text-[var(--vscode-text)] leading-[1.7]">
-      {lines.map((line, i) => {
-        const trimmed = line.trim();
+  let title = "";
+  let excerpt = "";
+  let dateStr = "";
+  const contentLines: string[] = [];
+  let inContent = false;
 
-        if (!trimmed) return <div key={i} className="h-2" />;
-
-        if (trimmed.startsWith("### ")) {
-          return (
-            <h3
-              key={i}
-              className="text-[16px] font-semibold text-[var(--vscode-text-bright)] mt-6"
-            >
-              {trimmed.slice(4)}
-            </h3>
-          );
-        }
-
-        if (trimmed.startsWith("## ")) {
-          return (
-            <h2
-              key={i}
-              className="text-[20px] font-semibold text-[var(--vscode-text-bright)] mt-4"
-            >
-              {trimmed.slice(3)}
-            </h2>
-          );
-        }
-
-        if (trimmed.startsWith("# ")) {
-          return (
-            <h1
-              key={i}
-              className="text-[24px] font-semibold text-[var(--vscode-text-bright)] mt-4"
-            >
-              {trimmed.slice(2)}
-            </h1>
-          );
-        }
-
-        if (trimmed.startsWith("> ")) {
-          return (
-            <blockquote
-              key={i}
-              className="border-l-2 border-[var(--vscode-accent)] pl-4 italic text-[var(--vscode-text-muted)]"
-            >
-              {renderInline(trimmed.slice(2))}
-            </blockquote>
-          );
-        }
-
-        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-          return (
-            <div key={i} className="flex gap-2 pl-4">
-              <span className="text-[var(--vscode-accent)] shrink-0">•</span>
-              <span>{renderInline(trimmed.slice(2))}</span>
-            </div>
-          );
-        }
-
-        if (/^\d+\.\s/.test(trimmed)) {
-          const match = trimmed.match(/^(\d+)\.\s(.+)$/);
-          if (match) {
-            return (
-              <div key={i} className="flex gap-2 pl-4">
-                <span className="text-[var(--vscode-accent)] shrink-0 font-mono text-[13px]">
-                  {match[1]}.
-                </span>
-                <span>{renderInline(match[2])}</span>
-              </div>
-            );
-          }
-        }
-
-        if (trimmed.startsWith("```")) {
-          return null;
-        }
-
-        return <p key={i}>{renderInline(trimmed)}</p>;
-      })}
-    </div>
-  );
-}
-
-function renderInline(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  const regex = /(\*\*(.+?)\*\*)|(`(.+?)`)/g;
-  let lastIndex = 0;
-  let match;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+  for (const line of lines) {
+    if (line.startsWith("# ")) {
+      title = line.slice(2);
+    } else if (line.startsWith("/* ") && line.endsWith(" */")) {
+      excerpt = line.slice(3, -3);
+    } else if (line.startsWith("// ") && !dateStr) {
+      dateStr = line.slice(3);
+    } else if (title && excerpt) {
+      inContent = true;
     }
-    if (match[2]) {
-      parts.push(
-        <strong key={match.index} className="text-[var(--vscode-text-bright)]">
-          {match[2]}
-        </strong>,
-      );
-    } else if (match[4]) {
-      parts.push(
-        <code
-          key={match.index}
-          className="px-1.5 py-0.5 bg-[var(--vscode-line-highlight)] rounded text-[12px] font-mono text-[var(--vscode-accent)]"
-        >
-          {match[4]}
-        </code>,
-      );
-    }
-    lastIndex = match.index + match[0].length;
+    if (inContent) contentLines.push(line);
   }
 
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+  if (!title) return {};
+
+  return {
+    articles: [{
+      slug,
+      title,
+      date: dateStr || new Date().toISOString(),
+      excerpt,
+      content: contentLines.join("\n").trim(),
+    }],
+  };
+}
+
+function parseProject(fileId: string, content: string): Partial<ReturnType<typeof usePortfolio>["data"]> {
+  const slug = fileId.replace("project-", "");
+  const description = extractString(content, "description");
+  const liveUrl = extractString(content, "liveUrl");
+
+  if (!description) return {};
+
+  return {
+    projects: [{
+      name: slug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+      description,
+      url: liveUrl || "#",
+    }],
+  };
+}
+
+/* ── Save to API ──────────────────────────────────────────────────────── */
+
+async function saveToApi(
+  fileId: string,
+  parsed: Partial<ReturnType<typeof usePortfolio>["data"]>,
+): Promise<void> {
+  // Map parsed data to appropriate API calls
+  if (parsed.articles?.length) {
+    const article = parsed.articles[0];
+    const res = await fetch(`/api/articles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(article),
+    });
+    if (!res.ok) throw new Error("Failed to save article");
   }
 
-  return parts.length > 0 ? parts : text;
+  if (parsed.projects?.length) {
+    const project = parsed.projects[0];
+    const res = await fetch(`/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(project),
+    });
+    if (!res.ok) throw new Error("Failed to save project");
+  }
+
+  // For profile/experience/expertise, we'd need specific endpoints
+  // For now, updates are reflected in-memory via setData
 }
+
+/* ── Types (re-exported for compatibility) ────────────────────────────── */
+
+import type { LucideIcon } from "lucide-react";
+
+export type FileId = string;
+
+export interface FileItem {
+  id: FileId;
+  name: string;
+  icon: LucideIcon;
+  iconColor?: string;
+  children?: FileItem[];
+}
+
+export interface Tab {
+  id: FileId;
+  name: string;
+  icon: LucideIcon;
+  iconColor?: string;
+}
+
+export interface PortfolioData {
+  experiences?: {
+    title?: string;
+    role?: string;
+    company: string;
+    description: string;
+    startDate?: string | Date | null;
+    endDate?: string | Date | null;
+    current?: boolean;
+    isCurrent?: boolean;
+    technologies?: string[];
+    companyUrl?: string | null;
+    location?: string | null;
+  }[];
+  projects?: {
+    id?: string;
+    name: string;
+    description: string;
+    url: string;
+    image?: string | null;
+    tags?: string[];
+    featured?: boolean;
+  }[];
+  articles?: {
+    id?: string;
+    slug: string;
+    title: string;
+    date: string | Date | null;
+    readingTime?: string | null;
+    excerpt: string;
+    content: string;
+    published?: boolean;
+  }[];
+  expertise?: {
+    heading?: string;
+    name?: string;
+    skills: string[];
+  }[];
+  certifications?: {
+    name: string;
+    issuer: string;
+    url?: string | null;
+    date?: string | Date | null;
+  }[];
+  timeline?: {
+    title: string;
+    org: string;
+    startDate: string;
+    endDate: string;
+  }[];
+  profile: {
+    name: string;
+    location: string;
+    email: string;
+    role: string;
+    bioParagraphs: string[];
+  };
+  socials?: {
+    label: string;
+    href: string;
+    icon: string;
+  }[];
+}
+
+export type SidebarPanel =
+  | "explorer"
+  | "search"
+  | "source-control"
+  | "extensions"
+  | "settings"
+  | "account";

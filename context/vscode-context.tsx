@@ -35,6 +35,17 @@ interface AdminUser {
   name: string;
 }
 
+export interface DbFile {
+  id: string;
+  name: string;
+  folderId: string | null;
+  isFolder: boolean;
+  content: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PortfolioContextValue {
   openTabs: Tab[];
   activeTabId: FileId | null;
@@ -51,6 +62,17 @@ interface PortfolioContextValue {
   login: (email: string, password: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  dbFiles: DbFile[];
+  sandboxFiles: DbFile[];
+  refreshFiles: () => Promise<void>;
+  createFile: (name: string, folderId?: string | null) => Promise<DbFile | null>;
+  createSandboxFile: (name: string) => DbFile;
+  createFolder: (name: string, folderId?: string | null) => Promise<DbFile | null>;
+  updateFile: (id: string, updates: { name?: string; content?: string; order?: number }) => Promise<boolean>;
+  updateSandboxFile: (id: string, updates: { name?: string; content?: string }) => void;
+  deleteFile: (id: string) => Promise<boolean>;
+  deleteSandboxFile: (id: string) => void;
+  getFileContent: (id: string) => Promise<string | null>;
   openFile: (
     id: FileId,
     name: string,
@@ -81,6 +103,120 @@ export function PortfolioProvider({
   const [data, setData] = useState<PortfolioData>(initialData);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const isAdmin = adminUser !== null;
+  const [dbFiles, setDbFiles] = useState<DbFile[]>([]);
+  const [sandboxFiles, setSandboxFiles] = useState<DbFile[]>([]);
+
+  // ── Sandbox files (local-only, for visitors) ────────────────────────
+
+  const createSandboxFile = useCallback((name: string): DbFile => {
+    const file: DbFile = {
+      id: `sandbox-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name,
+      folderId: null,
+      isFolder: false,
+      content: "",
+      order: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setSandboxFiles(prev => [...prev, file]);
+    return file;
+  }, []);
+
+  const updateSandboxFile = useCallback((id: string, updates: { name?: string; content?: string }) => {
+    setSandboxFiles(prev => prev.map(f => f.id === id ? { ...f, ...updates, updatedAt: new Date().toISOString() } : f));
+  }, []);
+
+  const deleteSandboxFile = useCallback((id: string) => {
+    setSandboxFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  // ── File system CRUD ────────────────────────────────────────────────
+
+  const refreshFiles = useCallback(async () => {
+    try {
+      const res = await fetch("/api/files");
+      if (res.ok) {
+        const files: DbFile[] = await res.json();
+        setDbFiles(files);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    refreshFiles();
+  }, [refreshFiles]);
+
+  const createFile = useCallback(async (name: string, folderId?: string | null) => {
+    try {
+      const res = await fetch("/api/files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, folderId: folderId || null, isFolder: false, content: "" }),
+      });
+      if (res.ok) {
+        const file: DbFile = await res.json();
+        setDbFiles(prev => [...prev, file]);
+        return file;
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const createFolder = useCallback(async (name: string, folderId?: string | null) => {
+    try {
+      const res = await fetch("/api/files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, folderId: folderId || null, isFolder: true }),
+      });
+      if (res.ok) {
+        const folder: DbFile = await res.json();
+        setDbFiles(prev => [...prev, folder]);
+        return folder;
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const updateFile = useCallback(async (id: string, updates: { name?: string; content?: string; order?: number }) => {
+    try {
+      const res = await fetch(`/api/files/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const updated: DbFile = await res.json();
+        setDbFiles(prev => prev.map(f => f.id === id ? updated : f));
+        return true;
+      }
+    } catch {}
+    return false;
+  }, []);
+
+  const deleteFile = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/files/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setDbFiles(prev => prev.filter(f => f.id !== id && f.folderId !== id));
+        return true;
+      }
+    } catch {}
+    return false;
+  }, []);
+
+  const getFileContent = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/files/${id}`);
+      if (res.ok) {
+        const file: DbFile = await res.json();
+        return file.content;
+      }
+    } catch {}
+    return null;
+  }, []);
+
   // Helper function to get icon name from component
   const getIconName = (icon: LucideIcon): string => {
     for (const [name, IconComponent] of Object.entries(LucideIcons)) {
@@ -327,6 +463,17 @@ export function PortfolioProvider({
         login,
         logout,
         checkAuth,
+        dbFiles,
+        sandboxFiles,
+        refreshFiles,
+        createFile,
+        createSandboxFile,
+        createFolder,
+        updateFile,
+        updateSandboxFile,
+        deleteFile,
+        deleteSandboxFile,
+        getFileContent,
         openFile,
         closeTab,
         setActiveTab,

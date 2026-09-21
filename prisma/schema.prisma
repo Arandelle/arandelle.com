@@ -73,3 +73,14 @@ model Expertise {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model File {
+  id        String   @id @default(cuid())
+  name      String              // "about.mdx"
+  folderId  String?             // parent folder's ID, null = root
+  isFolder  Boolean  @default(false)
+  content   String   @default("")  // markdown content (empty for folders)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

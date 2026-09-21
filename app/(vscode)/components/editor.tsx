@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo, forwardRef } from "react";
 import { usePortfolio } from "@/context/vscode-context";
 import { Welcome } from "./welcome";
+import { MarkdownRenderer } from "./markdown-renderer";
 import {
   projects as staticProjects,
   articles as staticArticles,
@@ -16,14 +17,400 @@ import {
 const LINE_HEIGHT = 22;
 
 export function Editor() {
-  const { activeTabId, data } = usePortfolio();
+  const { activeTabId, data, isAdmin } = usePortfolio();
 
   if (!activeTabId) return <Welcome />;
+
+  // Sandbox files: id starts with "sandbox-"
+  if (activeTabId.startsWith("sandbox-")) {
+    const sandboxId = activeTabId.replace("sandbox-", "");
+    return (
+      <div className="flex-1 h-full flex overflow-hidden">
+        <SandboxFileEditor sandboxId={sandboxId} />
+      </div>
+    );
+  }
+
+  // DB files: id starts with "file-"
+  if (activeTabId.startsWith("file-")) {
+    const dbFileId = activeTabId.replace("file-", "");
+    return (
+      <div className="flex-1 h-full flex overflow-hidden">
+        <DbFileEditor fileId={dbFileId} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-full flex cursor-text overflow-hidden">
       <EditorContent fileId={activeTabId} data={data} />
     </div>
+  );
+}
+
+/* ── Sandbox File Editor (local-only, always editable) ─────────────── */
+
+function SandboxFileEditor({ sandboxId }: { sandboxId: string }) {
+  const { sandboxFiles, updateSandboxFile } = usePortfolio();
+  const file = sandboxFiles.find(f => f.id === sandboxId);
+  const [lines, setLines] = useState<string[]>([""]);
+  const [cursorLine, setCursorLine] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLines((file?.content ?? "").split("\n"));
+    setCursorLine(0);
+  }, [file?.id]); // Only reset when switching files, not on every content change
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newLines = e.target.value.split("\n");
+    setLines(newLines);
+    updateSandboxFile(sandboxId, { content: e.target.value });
+  }, [sandboxId, updateSandboxFile]);
+
+  const handleSelect = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const textBefore = ta.value.slice(0, pos);
+    setCursorLine(textBefore.split("\n").length - 1);
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault(); // Already auto-saved locally
+      return;
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+      ta.value = val.slice(0, start) + "  " + val.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      const newLines = ta.value.split("\n");
+      setLines(newLines);
+      updateSandboxFile(sandboxId, { content: ta.value });
+    }
+  }, [sandboxId, updateSandboxFile]);
+
+  const handleScroll = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    if (overlayRef.current) {
+      overlayRef.current.scrollTop = ta.scrollTop;
+      overlayRef.current.scrollLeft = ta.scrollLeft;
+    }
+    if (gutterRef.current) {
+      gutterRef.current.scrollTop = ta.scrollTop;
+    }
+  }, []);
+
+  const editorFontStyle: React.CSSProperties = {
+    fontFamily: '"Geist Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace',
+    fontSize: '13px',
+    lineHeight: '22px',
+    letterSpacing: 'normal',
+    wordSpacing: 'normal',
+    tabSize: 2,
+    whiteSpace: 'pre',
+    overflowWrap: 'normal',
+    wordBreak: 'keep-all',
+    padding: '0 24px',
+    margin: 0,
+    border: 'none',
+  };
+
+  if (!file) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[var(--vscode-text-muted)] text-[13px]">
+        File not found
+      </div>
+    );
+  }
+
+  const rawText = lines.join("\n");
+
+  return (
+    <>
+      <Gutter ref={gutterRef} lineCount={lines.length} activeLine={cursorLine} />
+      <div className="flex-1 min-w-0 relative h-full overflow-hidden">
+        <div className="absolute inset-0 max-w-[800px]">
+          <div
+            ref={overlayRef}
+            className="absolute inset-0 pointer-events-none overflow-hidden"
+            style={{ ...editorFontStyle }}
+            aria-hidden
+          >
+            {lines.map((line, i) => (
+              <div key={i} style={{ minHeight: LINE_HEIGHT }}>
+                <ColorizedLine text={line} fileId="" />
+                {line === "" && "\n"}
+              </div>
+            ))}
+          </div>
+
+          <textarea
+            ref={textareaRef}
+            value={rawText}
+            onChange={handleChange}
+            onSelect={handleSelect}
+            onKeyDown={handleKeyDown}
+            onScroll={handleScroll}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            className="absolute inset-0 w-full h-full outline-none resize-none bg-transparent text-transparent caret-[var(--vscode-accent)] selection:bg-[var(--vscode-selection)] overflow-auto"
+            style={editorFontStyle}
+          />
+        </div>
+
+        {/* Always-visible sandbox badge */}
+        <div className="absolute bottom-4 right-4 z-10 px-3 py-1.5 bg-[var(--vscode-line-highlight)] border border-[var(--vscode-border)] rounded text-[11px] font-mono text-[var(--vscode-text-muted)]">
+          Sandbox mode — changes are local only
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ── DB File Editor (markdown files from database) ───────────────────── */
+
+function DbFileEditor({ fileId }: { fileId: string }) {
+  const { isAdmin, getFileContent, updateFile } = usePortfolio();
+  const [lines, setLines] = useState<string[]>([""]);
+  const [originalLines, setOriginalLines] = useState<string[]>([""]);
+  const [cursorLine, setCursorLine] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningPos, setWarningPos] = useState<{ left: number; top: number } | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
+  const warningTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    getFileContent(fileId).then(c => {
+      const loaded = (c ?? "").split("\n");
+      setLines(loaded);
+      setOriginalLines(loaded);
+      setLoading(false);
+      setDirty(false);
+      setSaveStatus("idle");
+      setCursorLine(0);
+    });
+  }, [fileId, getFileContent]);
+
+  const showReadOnlyWarning = useCallback(() => {
+    setShowWarning(true);
+    const ta = textareaRef.current;
+    if (ta) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const containerRect = ta.getBoundingClientRect();
+        setWarningPos({
+          left: rect.left - containerRect.left,
+          top: rect.top - containerRect.top + rect.height + 4,
+        });
+      }
+    }
+    if (warningTimeout.current) clearTimeout(warningTimeout.current);
+    warningTimeout.current = setTimeout(() => {
+      setShowWarning(false);
+      setWarningPos(null);
+    }, 2000);
+  }, []);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isAdmin) {
+      const ta = textareaRef.current;
+      const savedStart = ta?.selectionStart ?? 0;
+      const savedEnd = ta?.selectionEnd ?? 0;
+      showReadOnlyWarning();
+      requestAnimationFrame(() => {
+        if (ta) {
+          ta.selectionStart = savedStart;
+          ta.selectionEnd = savedEnd;
+        }
+      });
+      return;
+    }
+    setLines(e.target.value.split("\n"));
+    setDirty(true);
+    setSaveStatus("idle");
+  }, [isAdmin, showReadOnlyWarning]);
+
+  const handleSelect = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const textBefore = ta.value.slice(0, pos);
+    const linesBefore = textBefore.split("\n");
+    setCursorLine(linesBefore.length - 1);
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!isAdmin) {
+      showReadOnlyWarning();
+      return;
+    }
+    if (!dirty) return;
+    setSaving(true);
+    const content = lines.join("\n");
+    const ok = await updateFile(fileId, { content });
+    setSaving(false);
+    if (ok) {
+      setDirty(false);
+      setOriginalLines([...lines]);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } else {
+      setSaveStatus("error");
+    }
+  }, [isAdmin, fileId, lines, dirty, updateFile, showReadOnlyWarning]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      if (!isAdmin) {
+        showReadOnlyWarning();
+      } else {
+        handleSave();
+      }
+      return;
+    }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+      ta.value = val.slice(0, start) + "  " + val.slice(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+      setLines(ta.value.split("\n"));
+      setDirty(true);
+    }
+  }, [isAdmin, handleSave, showReadOnlyWarning]);
+
+  const handleScroll = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    if (overlayRef.current) {
+      overlayRef.current.scrollTop = ta.scrollTop;
+      overlayRef.current.scrollLeft = ta.scrollLeft;
+    }
+    if (gutterRef.current) {
+      gutterRef.current.scrollTop = ta.scrollTop;
+    }
+  }, []);
+
+  const editorFontStyle: React.CSSProperties = {
+    fontFamily: '"Geist Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace',
+    fontSize: '13px',
+    lineHeight: '22px',
+    letterSpacing: 'normal',
+    wordSpacing: 'normal',
+    tabSize: 2,
+    whiteSpace: 'pre',
+    overflowWrap: 'normal',
+    wordBreak: 'keep-all',
+    padding: '0 24px',
+    margin: 0,
+    border: 'none',
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[var(--vscode-text-muted)] text-[13px]">
+        Loading...
+      </div>
+    );
+  }
+
+  const rawText = lines.join("\n");
+
+  return (
+    <>
+      <Gutter ref={gutterRef} lineCount={lines.length} activeLine={cursorLine} />
+      <div className="flex-1 min-w-0 relative h-full overflow-hidden">
+        <div className="absolute inset-0 max-w-[800px]">
+          {/* Syntax-highlighted overlay */}
+          <div
+            ref={overlayRef}
+            className="absolute inset-0 pointer-events-none overflow-hidden"
+            style={{ ...editorFontStyle }}
+            aria-hidden
+          >
+            {lines.map((line, i) => (
+              <div key={i} style={{ minHeight: LINE_HEIGHT }}>
+                <ColorizedLine text={line} fileId="" />
+                {line === "" && "\n"}
+              </div>
+            ))}
+          </div>
+
+          {/* Textarea — editable for everyone, but only admin can save */}
+          <textarea
+            ref={textareaRef}
+            value={rawText}
+            onChange={handleChange}
+            onSelect={handleSelect}
+            onKeyDown={handleKeyDown}
+            onScroll={handleScroll}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            className="absolute inset-0 w-full h-full outline-none resize-none bg-transparent text-transparent caret-[var(--vscode-accent)] selection:bg-[var(--vscode-selection)] overflow-auto"
+            style={editorFontStyle}
+          />
+        </div>
+
+        {/* Read-only warning toast for non-admin */}
+        {!isAdmin && showWarning && warningPos && (
+          <div
+            className="absolute z-50 px-3 py-1.5 bg-[var(--vscode-titlebar-bg)] border border-[var(--vscode-border)] rounded shadow-lg text-[11px] font-mono text-[var(--vscode-text-muted)] whitespace-nowrap pointer-events-none animate-[fadeIn_150ms_ease-out]"
+            style={{ left: warningPos.left, top: warningPos.top }}
+          >
+            Cannot edit in read-only mode
+          </div>
+        )}
+
+        {/* Admin save indicator */}
+        {isAdmin && (
+          <div className="absolute top-2 right-4 flex items-center gap-2 z-10">
+            {dirty && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-3 py-1 text-[11px] font-mono bg-[var(--vscode-accent)] hover:bg-[var(--vscode-accent-hover)] text-white rounded-sm transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Ctrl+S to save"}
+              </button>
+            )}
+            {saveStatus === "saved" && (
+              <span className="text-[11px] font-mono text-green-500">✓ Saved</span>
+            )}
+            {saveStatus === "error" && (
+              <span className="text-[11px] font-mono text-red-500">✗ Save failed</span>
+            )}
+          </div>
+        )}
+
+      </div>
+    </>
   );
 }
 
@@ -43,9 +430,12 @@ function EditorContent({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [showWarning, setShowWarning] = useState(false);
+  const [warningPos, setWarningPos] = useState<{ left: number; top: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
+  const warningTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Generate initial content from data when file changes
   useEffect(() => {
@@ -57,12 +447,49 @@ function EditorContent({
     setSaveStatus("idle");
   }, [fileId, data]);
 
+  const showReadOnlyWarning = useCallback(() => {
+    setShowWarning(true);
+    const ta = textareaRef.current;
+    if (ta) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const containerRect = ta.getBoundingClientRect();
+        setWarningPos({
+          left: rect.left - containerRect.left,
+          top: rect.top - containerRect.top + rect.height + 4,
+        });
+      }
+    }
+    if (warningTimeout.current) clearTimeout(warningTimeout.current);
+    warningTimeout.current = setTimeout(() => {
+      setShowWarning(false);
+      setWarningPos(null);
+    }, 2000);
+  }, []);
+
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isAdmin) {
+      const ta = textareaRef.current;
+      const savedStart = ta?.selectionStart ?? 0;
+      const savedEnd = ta?.selectionEnd ?? 0;
+      showReadOnlyWarning();
+      const content = generateFileContent(fileId, data);
+      setLines(content.split("\n"));
+      requestAnimationFrame(() => {
+        if (ta) {
+          ta.selectionStart = savedStart;
+          ta.selectionEnd = savedEnd;
+        }
+      });
+      return;
+    }
     const value = e.target.value;
     setLines(value.split("\n"));
     setDirty(true);
     setSaveStatus("idle");
-  }, []);
+  }, [isAdmin, fileId, data, showReadOnlyWarning]);
 
   const handleSelect = useCallback(() => {
     const ta = textareaRef.current;
@@ -75,7 +502,11 @@ function EditorContent({
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!isAdmin || !dirty) return;
+    if (!isAdmin) {
+      showReadOnlyWarning();
+      return;
+    }
+    if (!dirty) return;
     setSaving(true);
     try {
       const content = lines.join("\n");
@@ -92,12 +523,16 @@ function EditorContent({
       setSaveStatus("error");
     }
     setSaving(false);
-  }, [isAdmin, dirty, fileId, lines, setData]);
+  }, [isAdmin, dirty, fileId, lines, setData, showReadOnlyWarning]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
-      handleSave();
+      if (!isAdmin) {
+        showReadOnlyWarning();
+      } else {
+        handleSave();
+      }
       return;
     }
     if (!isAdmin) return;
@@ -113,7 +548,7 @@ function EditorContent({
       setLines(ta.value.split("\n"));
       setDirty(true);
     }
-  }, [isAdmin, handleSave]);
+  }, [isAdmin, handleSave, showReadOnlyWarning]);
 
   // Sync scroll between textarea, overlay, and gutter
   const handleScroll = useCallback(() => {
@@ -166,23 +601,32 @@ function EditorContent({
             ))}
           </div>
 
-          {/* Textarea — readOnly for visitors, editable for admin */}
+          {/* Textarea — caret always visible; non-admin typing shows warning */}
           <textarea
             ref={textareaRef}
             value={rawText}
-            onChange={isAdmin ? handleChange : undefined}
+            onChange={handleChange}
             onSelect={handleSelect}
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
-            readOnly={!isAdmin}
             spellCheck={false}
             autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
-            className={`absolute inset-0 w-full h-full outline-none resize-none bg-transparent text-transparent caret-[var(--vscode-accent)] selection:bg-[var(--vscode-selection)] overflow-auto ${!isAdmin ? "cursor-default" : ""}`}
+            className="absolute inset-0 w-full h-full outline-none resize-none bg-transparent text-transparent caret-[var(--vscode-accent)] selection:bg-[var(--vscode-selection)] overflow-auto"
             style={editorFontStyle}
           />
         </div>
+
+        {/* Read-only warning tooltip for non-admin */}
+        {!isAdmin && showWarning && warningPos && (
+          <div
+            className="absolute z-50 px-3 py-1.5 bg-[var(--vscode-titlebar-bg)] border border-[var(--vscode-border)] rounded shadow-lg text-[11px] font-mono text-[var(--vscode-text-muted)] whitespace-nowrap pointer-events-none animate-[fadeIn_150ms_ease-out]"
+            style={{ left: warningPos.left, top: warningPos.top }}
+          >
+            Cannot edit in read-only mode
+          </div>
+        )}
 
         {/* Save indicator for admin */}
         {isAdmin && (
@@ -251,31 +695,25 @@ function ColorizedLine({ text, fileId }: { text: string; fileId: string }) {
     return <span className="text-[var(--vscode-text-muted)] italic">{text}</span>;
   }
 
-  // Keywords & exports
+  // Tokenize and colorize
   const parts: React.ReactNode[] = [];
-  const keywordRegex = /\b(export|const|let|var|function|return|import|from|type|interface|class|default|async|await|if|else|for|while|switch|case|break|true|false|null|undefined)\b/g;
-  const stringRegex = /("[^"]*"|'[^']*'|`[^`]*`)/g;
-  const bracketRegex = /([{}[\]()])/g;
-  const combined = new RegExp(
-    `(${keywordRegex.source})|(${stringRegex.source})|(${bracketRegex.source})`,
-    "g"
-  );
+  const tokenRegex = /\b(export|const|let|var|function|return|import|from|type|interface|class|default|async|await|if|else|for|while|switch|case|break|true|false|null|undefined)\b|("[^"]*"|'[^']*'|`[^`]*`)|([{}\[\]()])/g;
 
   let lastIdx = 0;
   let m;
-  while ((m = combined.exec(text)) !== null) {
+  while ((m = tokenRegex.exec(text)) !== null) {
     if (m.index > lastIdx) {
       parts.push(<span key={`t-${lastIdx}`} className="text-[var(--vscode-text)]">{text.slice(lastIdx, m.index)}</span>);
     }
     if (m[1]) {
       // keyword
-      parts.push(<span key={`k-${m.index}`} className="text-[#c586c0] dark:text-[#c586c0]">{m[0]}</span>);
+      parts.push(<span key={`k-${m.index}`} className="text-[#c586c0]">{m[0]}</span>);
     } else if (m[2]) {
       // string
-      parts.push(<span key={`s-${m.index}`} className="text-[#ce9178] dark:text-[#ce9178]">{m[0]}</span>);
+      parts.push(<span key={`s-${m.index}`} className="text-[#ce9178]">{m[0]}</span>);
     } else if (m[3]) {
       // bracket
-      parts.push(<span key={`b-${m.index}`} className="text-[#ffd700] dark:text-[#ffd700]">{m[0]}</span>);
+      parts.push(<span key={`b-${m.index}`} className="text-[#ffd700]">{m[0]}</span>);
     }
     lastIdx = m.index + m[0].length;
   }

@@ -8,17 +8,18 @@ import {
   FileText,
   Search,
   GitBranch,
-  Blocks,
-  Sun,
-  Moon,
-  Monitor,
-  Palette,
+  ExternalLink,
+  Mail,
+  Globe,
+  Code2,
 } from "lucide-react";
 import { usePortfolio } from "@/context/vscode-context";
 import {
   projects as staticProjects,
   articles as staticArticles,
   timeline as staticTimeline,
+  socials as staticSocials,
+  profile as staticProfile,
 } from "@/lib/data";
 import type { FileItem, SidebarPanel } from "../types";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -31,6 +32,8 @@ export function Sidebar() {
     search: "SEARCH",
     "source-control": "SOURCE CONTROL",
     extensions: "EXTENSIONS",
+    settings: "SETTINGS",
+    account: "ACCOUNT",
   };
 
   if (!sidebarOpen) return null;
@@ -63,6 +66,8 @@ export function Sidebar() {
             {sidebarPanel === "search" && <SearchPanel />}
             {sidebarPanel === "source-control" && <SourceControlPanel />}
             {sidebarPanel === "extensions" && <ExtensionsPanel />}
+            {sidebarPanel === "settings" && <SettingsPanel />}
+            {sidebarPanel === "account" && <AccountPanel />}
           </div>
         </aside>
       </>
@@ -79,6 +84,8 @@ export function Sidebar() {
         {sidebarPanel === "search" && <SearchPanel />}
         {sidebarPanel === "source-control" && <SourceControlPanel />}
         {sidebarPanel === "extensions" && <ExtensionsPanel />}
+        {sidebarPanel === "settings" && <SettingsPanel />}
+        {sidebarPanel === "account" && <AccountPanel />}
       </div>
     </aside>
   );
@@ -419,20 +426,6 @@ function ExtensionsPanel() {
         readOnly
       />
 
-      {/* Color Theme extension */}
-      <div className="mb-4 p-3 border border-[var(--vscode-border)] rounded-md bg-[var(--vscode-line-highlight)]">
-        <div className="flex items-center gap-2 mb-2">
-          <Palette size={16} className="text-[var(--vscode-accent)]" />
-          <span className="text-[13px] font-medium text-[var(--vscode-text-bright)]">
-            Color Theme
-          </span>
-        </div>
-        <div className="text-[11px] text-[var(--vscode-text-muted)] mb-2">
-          Switch between VS Code Light+ and Dark+
-        </div>
-        <ThemeToggle />
-      </div>
-
       <div className="text-[11px] text-[var(--vscode-text-muted)] uppercase tracking-wider mb-2 px-1">
         Installed
       </div>
@@ -464,6 +457,197 @@ function ExtensionsPanel() {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Settings Panel ─────────────────────────────────────────────────────── */
+
+function SettingsPanel() {
+  return (
+    <div className="px-3 pb-4">
+      <div className="mb-4 p-3 border border-[var(--vscode-border)] rounded-md bg-[var(--vscode-line-highlight)]">
+        <div className="text-[13px] font-medium text-[var(--vscode-text-bright)] mb-2">
+          Color Theme
+        </div>
+        <div className="text-[11px] text-[var(--vscode-text-muted)] mb-3">
+          Switch between VS Code Light+ and Dark+
+        </div>
+        <ThemeToggle />
+      </div>
+
+      <div className="text-[11px] text-[var(--vscode-text-muted)] uppercase tracking-wider mb-2 px-1">
+        Editor
+      </div>
+      <div className="space-y-0.5">
+        {[
+          { label: "Font Size", value: "13px" },
+          { label: "Tab Size", value: "2" },
+          { label: "Word Wrap", value: "off" },
+          { label: "Minimap", value: "disabled" },
+        ].map((setting) => (
+          <div
+            key={setting.label}
+            className="flex items-center justify-between px-2 py-1.5 hover:bg-[var(--vscode-line-highlight)] rounded-sm"
+          >
+            <span className="text-[13px] text-[var(--vscode-text)]">
+              {setting.label}
+            </span>
+            <span className="text-[12px] text-[var(--vscode-text-muted)] font-mono">
+              {setting.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Account Panel ──────────────────────────────────────────────────────── */
+
+function AccountPanel() {
+  const { data, isAdmin, adminUser, login, logout } = usePortfolio();
+  const profile = data.profile ?? staticProfile;
+  const socials = data.socials ?? staticSocials;
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const result = await login(email, password);
+    setLoading(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setEmail("");
+      setPassword("");
+    }
+  };
+
+  return (
+    <div className="px-3 pb-4">
+      {/* Admin auth section */}
+      {isAdmin ? (
+        <div className="mb-4 p-3 border border-[var(--vscode-accent)]/30 rounded-md bg-[var(--vscode-line-highlight)]">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--vscode-accent)]">
+              Admin Mode
+            </span>
+          </div>
+          <div className="text-[13px] text-[var(--vscode-text-bright)] mb-1">
+            {adminUser?.name}
+          </div>
+          <div className="text-[11px] text-[var(--vscode-text-muted)] mb-3">
+            {adminUser?.email}
+          </div>
+          <button
+            onClick={logout}
+            className="w-full px-3 py-1.5 text-[12px] font-mono border border-[var(--vscode-border)] rounded-sm text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)] hover:border-[var(--vscode-text-muted)] transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      ) : (
+        <div className="mb-4 p-3 border border-[var(--vscode-border)] rounded-md bg-[var(--vscode-line-highlight)]">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-[var(--vscode-text-muted)] mb-3">
+            Admin Login
+          </div>
+          <form onSubmit={handleLogin} className="space-y-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              className="w-full px-2.5 py-1.5 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-input-border)] rounded-sm text-[var(--vscode-text)] focus:outline-none focus:border-[var(--vscode-accent)]"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              required
+              className="w-full px-2.5 py-1.5 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-input-border)] rounded-sm text-[var(--vscode-text)] focus:outline-none focus:border-[var(--vscode-accent)]"
+            />
+            {error && (
+              <div className="text-[11px] text-red-500">{error}</div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-3 py-1.5 text-[12px] font-mono bg-[var(--vscode-accent)] hover:bg-[var(--vscode-accent-hover)] text-white rounded-sm transition-colors disabled:opacity-50"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Profile info (always visible) */}
+      <div className="flex items-center gap-3 mb-4 px-1">
+        <div className="w-10 h-10 rounded-full bg-[var(--vscode-accent)] flex items-center justify-center text-white text-[16px] font-semibold shrink-0">
+          {profile.name.charAt(0)}
+        </div>
+        <div className="min-w-0">
+          <div className="text-[14px] font-medium text-[var(--vscode-text-bright)] truncate">
+            {profile.name}
+          </div>
+          <div className="text-[12px] text-[var(--vscode-text-muted)] truncate">
+            {profile.role}
+          </div>
+        </div>
+      </div>
+
+      <div className="text-[11px] text-[var(--vscode-text-muted)] uppercase tracking-wider mb-2 px-1">
+        Contact
+      </div>
+      <div className="space-y-0.5 mb-4">
+        <a
+          href={`mailto:${profile.email}`}
+          className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-[var(--vscode-line-highlight)] rounded-sm transition-colors"
+        >
+          <Mail size={14} className="text-[var(--vscode-accent)] shrink-0" />
+          <span className="text-[var(--vscode-text)] truncate">
+            {profile.email}
+          </span>
+        </a>
+      </div>
+
+      <div className="text-[11px] text-[var(--vscode-text-muted)] uppercase tracking-wider mb-2 px-1">
+        Social
+      </div>
+      <div className="space-y-0.5">
+        {socials.map((social) => {
+          const Icon = social.icon === "github" ? Code2 : Globe;
+          return (
+            <a
+              key={social.label}
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-2 py-1.5 text-[13px] hover:bg-[var(--vscode-line-highlight)] rounded-sm transition-colors group"
+            >
+              <Icon
+                size={14}
+                className="text-[var(--vscode-text-muted)] group-hover:text-[var(--vscode-accent)] shrink-0 transition-colors"
+              />
+              <span className="text-[var(--vscode-text)] truncate">
+                {social.label}
+              </span>
+              <ExternalLink
+                size={11}
+                className="ml-auto text-[var(--vscode-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </a>
+          );
+        })}
       </div>
     </div>
   );

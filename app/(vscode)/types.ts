@@ -85,4 +85,6 @@ export type SidebarPanel =
   | "explorer"
   | "search"
   | "source-control"
-  | "extensions";
+  | "extensions"
+  | "settings"
+  | "account";

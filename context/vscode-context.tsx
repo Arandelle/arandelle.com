@@ -29,6 +29,12 @@ interface StoredTab {
   iconColor?: string;
 }
 
+interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
 interface PortfolioContextValue {
   openTabs: Tab[];
   activeTabId: FileId | null;
@@ -39,6 +45,12 @@ interface PortfolioContextValue {
   bottomPanelOpen: boolean;
   isMobile: boolean;
   data: PortfolioData;
+  setData: React.Dispatch<React.SetStateAction<PortfolioData>>;
+  isAdmin: boolean;
+  adminUser: AdminUser | null;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   openFile: (
     id: FileId,
     name: string,
@@ -61,11 +73,14 @@ const PortfolioContext = createContext<PortfolioContextValue | null>(null);
 
 export function PortfolioProvider({
   children,
-  data,
+  data: initialData,
 }: {
   children: ReactNode;
   data: PortfolioData;
 }) {
+  const [data, setData] = useState<PortfolioData>(initialData);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  const isAdmin = adminUser !== null;
   // Helper function to get icon name from component
   const getIconName = (icon: LucideIcon): string => {
     for (const [name, IconComponent] of Object.entries(LucideIcons)) {
@@ -247,6 +262,53 @@ export function PortfolioProvider({
     setBottomPanelOpenState(false);
   }, []);
 
+  // ── Auth ──────────────────────────────────────────────────────────────
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/verify");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.authenticated) setAdminUser(json.user);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        return { error: json.error || "Login failed" };
+      }
+      const json = await res.json();
+      // Re-verify to get user info
+      const verifyRes = await fetch("/api/auth/verify");
+      if (verifyRes.ok) {
+        const verifyJson = await verifyRes.json();
+        if (verifyJson.authenticated) setAdminUser(verifyJson.user);
+      }
+      return {};
+    } catch {
+      return { error: "Network error" };
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    setAdminUser(null);
+  }, []);
+
   return (
     <PortfolioContext.Provider
       value={{
@@ -259,6 +321,12 @@ export function PortfolioProvider({
         bottomPanelOpen,
         isMobile,
         data,
+        setData,
+        isAdmin,
+        adminUser,
+        login,
+        logout,
+        checkAuth,
         openFile,
         closeTab,
         setActiveTab,

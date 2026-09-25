@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { queryOne, type AdminRow } from '@/lib/db';
 import { loginSchema } from '@/lib/validation';
 import { verifyPassword, generateToken, cookieOptions } from '@/lib/auth';
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const { email, password } = validation.data;
 
     // Find admin
-    const admin = await prisma.admin.findUnique({ where: { email } });
+    const admin = await queryOne<AdminRow>('SELECT * FROM "Admin" WHERE "email" = $1', email);
     if (!admin) {
       return NextResponse.json(
         { error: 'Invalid email or password' },

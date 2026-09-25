@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { prisma } from '@/lib/prisma';
+import { queryOne, execute, type ProjectRow } from '@/lib/db';
 import { getAuthenticatedAdmin } from '@/lib/auth-middleware';
 import { projectSchema } from '@/lib/validation';
 
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const project = await prisma.project.findUnique({ where: { id } });
+  const project = await queryOne<ProjectRow>('SELECT * FROM "Project" WHERE "id" = $1', id);
 
   if (!project) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -40,11 +40,23 @@ export async function PUT(
     );
   }
 
-  const project = await prisma.project.update({
-    where: { id },
-    data: validation.data,
-  });
+  const { name, description, url, image, tags, featured } = validation.data;
 
+  await execute(
+    `UPDATE "Project"
+       SET "name" = $1, "description" = $2, "url" = $3, "image" = $4,
+           "tags" = $5, "featured" = $6, "updatedAt" = now()
+     WHERE "id" = $7`,
+    name,
+    description,
+    url,
+    image,
+    tags,
+    featured,
+    id
+  );
+
+  const project = await queryOne<ProjectRow>('SELECT * FROM "Project" WHERE "id" = $1', id);
   revalidatePath('/');
   return NextResponse.json(project);
 }
@@ -60,7 +72,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  await prisma.project.delete({ where: { id } });
+  await execute('DELETE FROM "Project" WHERE "id" = $1', id);
 
   revalidatePath('/');
   return NextResponse.json({ success: true });

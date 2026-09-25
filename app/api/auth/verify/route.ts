@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { queryOne } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value;
@@ -15,10 +15,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Verify admin still exists in database
-  const admin = await prisma.admin.findUnique({
-    where: { id: payload.adminId },
-    select: { id: true, email: true, name: true },
-  });
+  const admin = await queryOne<{ id: string; email: string; name: string }>(
+    'SELECT "id", "email", "name" FROM "Admin" WHERE "id" = $1',
+    payload.adminId
+  );
 
   if (!admin) {
     return NextResponse.json({ authenticated: false }, { status: 401 });

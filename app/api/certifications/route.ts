@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { prisma } from '@/lib/prisma';
+import { query, queryOne, execute, newId, type CertificationRow } from '@/lib/db';
 import { getAuthenticatedAdmin } from '@/lib/auth-middleware';
 import { certificationSchema } from '@/lib/validation';
 
 export async function GET() {
-  const certifications = await prisma.certification.findMany({
-    orderBy: { date: 'desc' },
-  });
+  const certifications = await query<CertificationRow>(
+    'SELECT * FROM "Certification" ORDER BY "date" DESC'
+  );
   return NextResponse.json(certifications);
 }
 
@@ -27,9 +27,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const certification = await prisma.certification.create({
-    data: validation.data,
-  });
+  const { name, issuer, url, date } = validation.data;
+  const id = newId();
+
+  await execute(
+    `INSERT INTO "Certification" ("id", "name", "issuer", "url", "date")
+     VALUES ($1, $2, $3, $4, $5)`,
+    id,
+    name,
+    issuer,
+    url,
+    date
+  );
+
+  const certification = await queryOne<CertificationRow>(
+    'SELECT * FROM "Certification" WHERE "id" = $1',
+    id
+  );
   revalidatePath('/');
   return NextResponse.json(certification, { status: 201 });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { prisma } from '@/lib/prisma';
+import { query, queryOne, execute, newId, type ArticleRow } from '@/lib/db';
 import { getAuthenticatedAdmin } from '@/lib/auth-middleware';
 import { articleSchema } from '@/lib/validation';
 
@@ -8,12 +8,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const published = searchParams.get('published');
 
-  const where = published ? { published: published === 'true' } : {};
+  // Optionally filter by published state (a real Postgres BOOLEAN column).
+  const params: unknown[] = [];
+  let sql = 'SELECT * FROM "Article"';
+  if (published) {
+    sql += ' WHERE "published" = $1';
+    params.push(published === 'true');
+  }
+  sql += ' ORDER BY "date" DESC';
 
-  const articles = await prisma.article.findMany({
-    where,
-    orderBy: { date: 'desc' },
-  });
+  const articles = await query<ArticleRow>(sql, ...params);
   return NextResponse.json(articles);
 }
 
@@ -33,7 +37,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const article = await prisma.article.create({ data: validation.data });
+  const { slug, title, excerpt, content, published, date } = validation.data;
+  const id = newId();
+
+  await execute(
+    `INSERT INTO "Article"
+       ("id", "slug", "title", "excerpt", "content", "published", "date")
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    id,
+    slug,
+    title,
+    excerpt,
+    content,
+    published,
+    date
+  );
+
+  const article = await queryOne<ArticleRow>('SELECT * FROM "Article" WHERE "id" = $1', id);
   revalidatePath('/');
   return NextResponse.json(article, { status: 201 });
 }

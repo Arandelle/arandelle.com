@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { queryOne } from '@/lib/db';
 
 export interface AuthenticatedAdmin {
   id: string;
@@ -22,10 +22,10 @@ export async function getAuthenticatedAdmin(
     return null;
   }
 
-  const admin = await prisma.admin.findUnique({
-    where: { id: payload.adminId },
-    select: { id: true, email: true, name: true },
-  });
+  const admin = await queryOne<AuthenticatedAdmin>(
+    'SELECT "id", "email", "name" FROM "Admin" WHERE "id" = $1',
+    payload.adminId
+  );
 
-  return admin;
+  return admin ?? null;
 }

@@ -72,3 +72,23 @@ export const expertiseSchema = z.object({
 });
 
 export type ExpertiseInput = z.infer<typeof expertiseSchema>;
+
+// ─── File Validation ──────────────────────────────────────────────────
+
+export const fileSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
+  folderId: z.string().optional().nullable(),
+  isFolder: z.boolean().default(false),
+  content: z.string().default(''),
+  order: z.number().int().min(0).default(0),
+});
+
+export type FileInput = z.infer<typeof fileSchema>;
+
+export const fileUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  content: z.string().optional(),
+  order: z.number().int().min(0).optional(),
+});
+
+export type FileUpdateInput = z.infer<typeof fileUpdateSchema>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo, forwardRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, forwardRef, useLayoutEffect } from "react";
 import { usePortfolio } from "@/context/vscode-context";
 import { Welcome } from "./welcome";
 import {
@@ -12,11 +12,12 @@ import {
   certifications as staticCertifications,
   socials as staticSocials,
 } from "@/lib/data";
+import { useTextareaCaret } from "@/app/hooks/useTextareaCaret";
 
 const LINE_HEIGHT = 22;
 
 export function Editor() {
-  const { activeTabId, data, isAdmin } = usePortfolio();
+  const { activeTabId, data} = usePortfolio();
 
   if (!activeTabId) return <Welcome />;
 
@@ -190,11 +191,20 @@ function DbFileEditor({ fileId }: { fileId: string }) {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [showWarning, setShowWarning] = useState(false);
-  const [warningPos, setWarningPos] = useState<{ left: number; top: number } | null>(null);
+  const [warningStyle, setWarningStyle] = useState<React.CSSProperties | null>(null);
+  // Increments on every showReadOnlyWarning() call, even ones that don't
+  // flip `showWarning` false→true (e.g. rapid keystrokes within the 2s
+  // window). The reposition effect depends on THIS, not on showWarning,
+  // so it reliably reruns every time — that's the actual fix.
+  const [warningToken, setWarningToken] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
+  const editorAreaRef = useRef<HTMLDivElement>(null);
+  const warningRef = useRef<HTMLDivElement>(null);
   const warningTimeout = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const { getCaretCoordinates } = useTextareaCaret();
 
   useEffect(() => {
     setLoading(true);
@@ -209,46 +219,90 @@ function DbFileEditor({ fileId }: { fileId: string }) {
     });
   }, [fileId, getFileContent]);
 
-  const showReadOnlyWarning = useCallback(() => {
-    setShowWarning(true);
+  const getLocalCaretPos = useCallback(() => {
     const ta = textareaRef.current;
-    if (ta) {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        const containerRect = ta.getBoundingClientRect();
-        setWarningPos({
-          left: rect.left - containerRect.left,
-          top: rect.top - containerRect.top + rect.height + 4,
-        });
-      }
-    }
+    const container = editorAreaRef.current;
+    if (!ta || !container) return null;
+    const { x, y } = getCaretCoordinates(ta);
+    const containerRect = container.getBoundingClientRect();
+    return {
+      x: x - containerRect.left,
+      y: y - containerRect.top,
+    };
+  }, [getCaretCoordinates]);
+
+  const showReadOnlyWarning = useCallback(() => {
+    const pos = getLocalCaretPos();
+    if (!pos) return;
+
+    setWarningStyle({
+      left: pos.x + 12,
+      top: pos.y,
+      transform: "translateY(-50%)",
+      visibility: "hidden",
+    });
+    setShowWarning(true);
+    setWarningToken(t => t + 1); // always changes, unlike showWarning
+
     if (warningTimeout.current) clearTimeout(warningTimeout.current);
     warningTimeout.current = setTimeout(() => {
       setShowWarning(false);
-      setWarningPos(null);
+      setWarningStyle(null);
     }, 2000);
-  }, []);
+  }, [getLocalCaretPos]);
+
+  // Depends on warningToken (not showWarning) so it reruns on every single
+  // call to showReadOnlyWarning, including rapid repeats while the previous
+  // warning is still on screen.
+  useLayoutEffect(() => {
+    if (!showWarning) return;
+    const tooltip = warningRef.current;
+    const container = editorAreaRef.current;
+    if (!tooltip || !container) return;
+
+    const pos = getLocalCaretPos();
+    if (!pos) return;
+    const caretHeight = LINE_HEIGHT;
+
+    const containerRect = container.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const gap = 12;
+
+    let left = pos.x + gap;
+    const overflowsRight = left + tooltipRect.width > containerRect.width;
+    if (overflowsRight) {
+      const leftSide = pos.x - gap - tooltipRect.width;
+      left = leftSide >= 0 ? leftSide : Math.max(0, containerRect.width - tooltipRect.width);
+    }
+
+    let top = pos.y;
+    let transform = "translateY(-50%)";
+    const halfHeight = tooltipRect.height / 2;
+    if (top - halfHeight < 0) {
+      top = pos.y + caretHeight / 2 + 4;
+      transform = "none";
+    } else if (top + halfHeight > containerRect.height) {
+      top = pos.y - caretHeight / 2 - 4;
+      transform = "translateY(-100%)";
+    }
+
+    setWarningStyle({ left, top, transform, visibility: "visible" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warningToken]);
+
+  const handleBeforeInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
+    if (!isAdmin) {
+      e.preventDefault();
+      showReadOnlyWarning();
+    }
+  }, [isAdmin, showReadOnlyWarning]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (!isAdmin) {
-      const ta = textareaRef.current;
-      const savedStart = ta?.selectionStart ?? 0;
-      const savedEnd = ta?.selectionEnd ?? 0;
-      showReadOnlyWarning();
-      requestAnimationFrame(() => {
-        if (ta) {
-          ta.selectionStart = savedStart;
-          ta.selectionEnd = savedEnd;
-        }
-      });
-      return;
-    }
+    if (!isAdmin) return;
     setLines(e.target.value.split("\n"));
     setDirty(true);
     setSaveStatus("idle");
-  }, [isAdmin, showReadOnlyWarning]);
+  }, [isAdmin]);
 
   const handleSelect = useCallback(() => {
     const ta = textareaRef.current;
@@ -291,6 +345,10 @@ function DbFileEditor({ fileId }: { fileId: string }) {
     }
     if (e.key === "Tab") {
       e.preventDefault();
+      if (!isAdmin) {
+        showReadOnlyWarning();
+        return;
+      }
       const ta = textareaRef.current;
       if (!ta) return;
       const start = ta.selectionStart;
@@ -344,8 +402,7 @@ function DbFileEditor({ fileId }: { fileId: string }) {
     <>
       <Gutter ref={gutterRef} lineCount={lines.length} activeLine={cursorLine} />
       <div className="flex-1 min-w-0 relative h-full overflow-hidden">
-        <div className="absolute inset-0 max-w-[800px]">
-          {/* Syntax-highlighted overlay */}
+        <div ref={editorAreaRef} className="absolute inset-0 max-w-[800px]">
           <div
             ref={overlayRef}
             className="absolute inset-0 pointer-events-none overflow-hidden"
@@ -360,10 +417,10 @@ function DbFileEditor({ fileId }: { fileId: string }) {
             ))}
           </div>
 
-          {/* Textarea — editable for everyone, but only admin can save */}
           <textarea
             ref={textareaRef}
             value={rawText}
+            onBeforeInput={handleBeforeInput}
             onChange={handleChange}
             onSelect={handleSelect}
             onKeyDown={handleKeyDown}
@@ -377,17 +434,16 @@ function DbFileEditor({ fileId }: { fileId: string }) {
           />
         </div>
 
-        {/* Read-only warning toast for non-admin */}
-        {!isAdmin && showWarning && warningPos && (
+        {!isAdmin && showWarning && warningStyle && (
           <div
+            ref={warningRef}
             className="absolute z-50 px-3 py-1.5 bg-[var(--vscode-titlebar-bg)] border border-[var(--vscode-border)] rounded shadow-lg text-[11px] font-mono text-[var(--vscode-text-muted)] whitespace-nowrap pointer-events-none animate-[fadeIn_150ms_ease-out]"
-            style={{ left: warningPos.left, top: warningPos.top }}
+            style={warningStyle}
           >
-            Cannot edit in read-only mode
+            🔒 Read-only mode
           </div>
         )}
 
-        {/* Admin save indicator */}
         {isAdmin && (
           <div className="absolute top-2 right-4 flex items-center gap-2 z-10">
             {dirty && (
@@ -407,7 +463,6 @@ function DbFileEditor({ fileId }: { fileId: string }) {
             )}
           </div>
         )}
-
       </div>
     </>
   );
@@ -436,6 +491,8 @@ function EditorContent({
   const gutterRef = useRef<HTMLDivElement>(null);
   const warningTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
+  const {getCaretCoordinates} = useTextareaCaret();
+
   // Generate initial content from data when file changes
   useEffect(() => {
     const content = generateFileContent(fileId, data);
@@ -450,45 +507,26 @@ function EditorContent({
     setShowWarning(true);
     const ta = textareaRef.current;
     if (ta) {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        const containerRect = ta.getBoundingClientRect();
-        setWarningPos({
-          left: rect.left - containerRect.left,
-          top: rect.top - containerRect.top + rect.height + 4,
-        });
-      }
+      const coords = getCaretCoordinates(ta);
+      if (coords) setWarningPos({ left: coords.x, top: coords.y });
     }
     if (warningTimeout.current) clearTimeout(warningTimeout.current);
     warningTimeout.current = setTimeout(() => {
       setShowWarning(false);
       setWarningPos(null);
     }, 2000);
-  }, []);
+  }, [getCaretCoordinates]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (!isAdmin) {
-      const ta = textareaRef.current;
-      const savedStart = ta?.selectionStart ?? 0;
-      const savedEnd = ta?.selectionEnd ?? 0;
       showReadOnlyWarning();
-      const content = generateFileContent(fileId, data);
-      setLines(content.split("\n"));
-      requestAnimationFrame(() => {
-        if (ta) {
-          ta.selectionStart = savedStart;
-          ta.selectionEnd = savedEnd;
-        }
-      });
       return;
     }
     const value = e.target.value;
     setLines(value.split("\n"));
     setDirty(true);
     setSaveStatus("idle");
-  }, [isAdmin, fileId, data, showReadOnlyWarning]);
+  }, [isAdmin, showReadOnlyWarning]);
 
   const handleSelect = useCallback(() => {
     const ta = textareaRef.current;
@@ -512,7 +550,6 @@ function EditorContent({
       const parsed = parseFileContent(fileId, content);
       if (parsed) {
         setData(prev => ({ ...prev, ...parsed }));
-        // Also persist to API
         await saveToApi(fileId, parsed);
         setDirty(false);
         setSaveStatus("saved");
@@ -534,11 +571,14 @@ function EditorContent({
       }
       return;
     }
-    if (!isAdmin) return;
     if (e.key === "Tab") {
       e.preventDefault();
       const ta = textareaRef.current;
       if (!ta) return;
+      if (!isAdmin) {
+        showReadOnlyWarning();
+        return;
+      }
       const start = ta.selectionStart;
       const end = ta.selectionEnd;
       const val = ta.value;
@@ -600,7 +640,6 @@ function EditorContent({
             ))}
           </div>
 
-          {/* Textarea — caret always visible; non-admin typing shows warning */}
           <textarea
             ref={textareaRef}
             value={rawText}
@@ -617,17 +656,15 @@ function EditorContent({
           />
         </div>
 
-        {/* Read-only warning tooltip for non-admin */}
         {!isAdmin && showWarning && warningPos && (
           <div
             className="absolute z-50 px-3 py-1.5 bg-[var(--vscode-titlebar-bg)] border border-[var(--vscode-border)] rounded shadow-lg text-[11px] font-mono text-[var(--vscode-text-muted)] whitespace-nowrap pointer-events-none animate-[fadeIn_150ms_ease-out]"
             style={{ left: warningPos.left, top: warningPos.top }}
           >
-            Cannot edit in read-only mode
+            🔒 Read-only mode
           </div>
         )}
 
-        {/* Save indicator for admin */}
         {isAdmin && (
           <div className="absolute top-2 right-4 flex items-center gap-2 z-10">
             {dirty && (

@@ -5,6 +5,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// NOTE: Prisma is an UNUSED STANDBY. At runtime the app talks to PostgreSQL
+// with raw SQL through lib/db.ts (pg driver). This schema is kept only so the
+// standby stays coherent with the real database; nothing imports the client.
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -25,7 +29,7 @@ model Project {
   description String
   url         String
   image       String?
-  tags        String[] // array of tag strings
+  tags        String[] @default([])
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -68,7 +72,18 @@ model Article {
 model Expertise {
   id        String   @id @default(cuid())
   name      String   // "Frontend", "Backend", etc.
-  skills    String[] // array of skill strings
+  skills    String[] @default([])
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model File {
+  id        String   @id @default(cuid())
+  name      String              // "about.mdx"
+  folderId  String?             // parent folder's ID, null = root
+  isFolder  Boolean  @default(false)
+  content   String   @default("")  // markdown content (empty for folders)
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

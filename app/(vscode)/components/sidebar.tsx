@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback, useSyncExternalStore } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ChevronRight,
   FileCode2,
   Folder,
+  FolderOpen,
   FileText,
   Search,
   GitBranch,
@@ -12,6 +13,13 @@ import {
   Mail,
   Globe,
   Code2,
+  Plus,
+  FolderPlus,
+  RefreshCw,
+  ChevronsUpDown,
+  Trash2,
+  Moon,
+  Ellipsis,
 } from "lucide-react";
 import { usePortfolio } from "@/context/vscode-context";
 import {
@@ -51,11 +59,10 @@ export function Sidebar() {
               <button
                 key={panel}
                 onClick={() => setSidebarPanel(panel)}
-                className={`px-3 py-2 text-[11px] uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${
-                  sidebarPanel === panel
-                    ? "text-[var(--vscode-text-bright)] border-[var(--vscode-accent)]"
-                    : "text-[var(--vscode-text-muted)] border-transparent hover:text-[var(--vscode-text)]"
-                }`}
+                className={`px-3 py-2 text-[11px] uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${sidebarPanel === panel
+                  ? "text-[var(--vscode-text-bright)] border-[var(--vscode-accent)]"
+                  : "text-[var(--vscode-text-muted)] border-transparent hover:text-[var(--vscode-text)]"
+                  }`}
               >
                 {panelTitles[panel]}
               </button>
@@ -76,8 +83,11 @@ export function Sidebar() {
 
   return (
     <aside className="w-[var(--sidebar-width)] shrink-0 bg-[var(--vscode-sidebar-bg)] border-r border-[var(--vscode-border)] flex flex-col">
-      <div className="px-4 py-3 text-[11px] font-semibold tracking-wider text-[var(--vscode-text-muted)] uppercase">
+      <div className="px-4 py-3 text-[11px] flex items-center justify-between font-semibold tracking-wider text-[var(--vscode-text-muted)] uppercase">
         {panelTitles[sidebarPanel]}
+
+        <Ellipsis size={14} />
+
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {sidebarPanel === "explorer" && <ExplorerPanel />}
@@ -94,8 +104,75 @@ export function Sidebar() {
 /* ── Explorer Panel ─────────────────────────────────────────────────────── */
 
 function ExplorerPanel() {
-  const { data, openFile, closeSidebar, activeTabId } = usePortfolio();
+  const {
+    data, openFile, closeSidebar, activeTabId, isAdmin,
+    dbFiles, sandboxFiles, refreshFiles, createFile, createSandboxFile,
+    createFolder, deleteFile, deleteSandboxFile, updateFile, updateSandboxFile,
+  } = usePortfolio();
 
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [inlineInput, setInlineInput] = useState<{ folderId: string | null; type: "file" | "folder"; sandbox?: boolean } | null>(null);
+  const [inlineValue, setInlineValue] = useState("");
+  const inlineRef = useRef<HTMLInputElement>(null);
+
+  // Focus inline input when it appears
+  useEffect(() => {
+    if (inlineInput && inlineRef.current) {
+      inlineRef.current.focus();
+    }
+  }, [inlineInput]);
+
+  const toggleFolder = useCallback((folderId: string) => {
+    setCollapsedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  }, []);
+
+  const collapseAll = useCallback(() => {
+    const folderIds = dbFiles.filter(f => f.isFolder).map(f => f.id);
+    setCollapsedFolders(new Set(folderIds));
+  }, [dbFiles]);
+
+  const handleInlineSubmit = useCallback(async () => {
+    if (!inlineInput || !inlineValue.trim()) {
+      setInlineInput(null);
+      setInlineValue("");
+      return;
+    }
+    const name = inlineValue.trim();
+    if (inlineInput.type === "file") {
+      if (inlineInput.sandbox) {
+        // Visitor sandbox file — local only
+        const file = createSandboxFile(name);
+        openFile(`sandbox-${file.id}`, file.name, FileText, "#569cd6");
+        if (window.innerWidth < 768) closeSidebar();
+      } else {
+        // Admin DB file
+        const file = await createFile(name, inlineInput.folderId);
+        if (file) {
+          openFile(`file-${file.id}`, file.name, FileText, "#569cd6");
+          if (window.innerWidth < 768) closeSidebar();
+        }
+      }
+    } else {
+      await createFolder(name, inlineInput.folderId);
+    }
+    setInlineInput(null);
+    setInlineValue("");
+  }, [inlineInput, inlineValue, createFile, createSandboxFile, createFolder, openFile, closeSidebar]);
+
+  const handleInlineKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleInlineSubmit();
+    if (e.key === "Escape") {
+      setInlineInput(null);
+      setInlineValue("");
+    }
+  }, [handleInlineSubmit]);
+
+  // Build tree from flat DB files + hardcoded files
   const projects = data.projects ?? staticProjects;
   const articles = data.articles ?? staticArticles;
 
@@ -113,29 +190,16 @@ function ExplorerPanel() {
     iconColor: "#569cd6",
   }));
 
-  const fileTree: FileItem[] = [
+  // Hardcoded files (always present)
+  const hardcodedFiles: FileItem[] = [
     { id: "about", name: "about.tsx", icon: FileCode2, iconColor: "#4ec9b0" },
-    {
-      id: "experience",
-      name: "experience.tsx",
-      icon: FileCode2,
-      iconColor: "#4ec9b0",
-    },
-    {
-      id: "projects-folder",
-      name: "projects",
-      icon: Folder,
-      iconColor: "#dcdcaa",
-      children: projectFiles,
-    },
-    {
-      id: "blogs-folder",
-      name: "blogs",
-      icon: Folder,
-      iconColor: "#dcdcaa",
-      children: articleFiles,
-    },
+    { id: "experience", name: "experience.tsx", icon: FileCode2, iconColor: "#4ec9b0" },
+    { id: "projects-folder", name: "projects", icon: Folder, iconColor: "#dcdcaa", children: projectFiles },
+    { id: "blogs-folder", name: "blogs", icon: Folder, iconColor: "#dcdcaa", children: articleFiles },
   ];
+
+  // DB files grouped by folder
+  const rootDbFiles = dbFiles.filter(f => !f.folderId);
 
   const handleFileClick = (item: FileItem) => {
     if (item.children) return;
@@ -143,24 +207,436 @@ function ExplorerPanel() {
     if (window.innerWidth < 768) closeSidebar();
   };
 
+  const handleDbFileClick = (file: typeof dbFiles[0]) => {
+    if (file.isFolder) {
+      toggleFolder(file.id);
+      return;
+    }
+    // Everyone can open DB files — visitors get read-only editor with warning on type
+    openFile(`file-${file.id}`, file.name, FileText, "#569cd6");
+    if (window.innerWidth < 768) closeSidebar();
+  };
+
   return (
-    <div className="px-2 pb-4">
-      <div className="px-2 py-1 text-[11px] font-semibold text-[var(--vscode-text-muted)] uppercase tracking-wider">
-        portfolio
+    <div className="pb-4">
+      {/* Header with actions */}
+      <div className="flex items-center justify-between px-4 py-1 explorer-row group relative">
+        <span className="text-[11px] font-semibold text-[var(--vscode-text-muted)] uppercase tracking-wider">
+          Portfolio
+        </span>
+        <div className="explorer-actions flex items-center gap-0.5">
+          <button
+            onClick={() => { setInlineInput({ folderId: null, type: "file", sandbox: !isAdmin }); setInlineValue(""); }}
+            className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+            title={isAdmin ? "New File" : "New Sandbox File"}
+          >
+            <Plus size={14} />
+          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => { setInlineInput({ folderId: null, type: "folder" }); setInlineValue(""); }}
+                className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+                title="New Folder"
+              >
+                <FolderPlus size={14} />
+              </button>
+              <button
+                onClick={refreshFiles}
+                className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+                title="Refresh"
+              >
+                <RefreshCw size={14} />
+              </button>
+              <button
+                onClick={collapseAll}
+                className="p-1 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+                title="Collapse All"
+              >
+                <ChevronsUpDown size={14} />
+              </button>
+            </>
+          )}
+        </div>
+
       </div>
-      {fileTree.map((item) => (
-        <TreeNode
-          key={item.id}
-          item={item}
+
+      {/* Inline creation input at root level */}
+      {inlineInput && inlineInput.folderId === null && (
+        <div className="px-2 py-0.5" style={{ paddingLeft: "28px" }}>
+          <input
+            ref={inlineRef}
+            value={inlineValue}
+            onChange={(e) => setInlineValue(e.target.value)}
+            onKeyDown={handleInlineKeyDown}
+            onBlur={handleInlineSubmit}
+            placeholder={inlineInput.type === "file" ? "filename.mdx" : "folder name"}
+            className="w-full px-1.5 py-0.5 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-accent)] rounded-sm text-[var(--vscode-text)] outline-none"
+          />
+        </div>
+      )}
+
+      {/* DB files (root level) */}
+      {rootDbFiles.map(file => (
+        <DbFileNode
+          key={file.id}
+          file={file}
+          allFiles={dbFiles}
           depth={0}
           activeTabId={activeTabId}
-          onFileClick={handleFileClick}
+          collapsedFolders={collapsedFolders}
+          isAdmin={isAdmin}
+          onClick={() => handleDbFileClick(file)}
+          onToggleFolder={toggleFolder}
+          onDelete={deleteFile}
+          onRename={updateFile}
+          onCreateInFolder={(folderId, type) => { setInlineInput({ folderId, type }); setInlineValue(""); }}
+          inlineInput={inlineInput}
+          inlineValue={inlineValue}
+          setInlineValue={setInlineValue}
+          onInlineSubmit={handleInlineSubmit}
+          onInlineKeyDown={handleInlineKeyDown}
+          inlineRef={inlineRef}
+        />
+      ))}
+
+      {/* Sandbox files (visitor-created, local only) */}
+      {sandboxFiles.length > 0 && (
+        <>
+          <div className="mt-2 px-2 py-1 flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-[var(--vscode-text-muted)] uppercase tracking-wider">
+              sandbox
+            </span>
+            <span className="text-[9px] font-mono text-[var(--vscode-accent)] uppercase">local only</span>
+          </div>
+          {sandboxFiles.map(file => (
+            <SandboxFileNode
+              key={file.id}
+              file={file}
+              activeTabId={activeTabId}
+              onUpdate={updateSandboxFile}
+              onDelete={deleteSandboxFile}
+            />
+          ))}
+        </>
+      )}
+
+      {!isAdmin && (
+        <>
+          <div className="mt-2 px-4 py-1">
+            <span className="text-[11px] font-semibold text-[var(--vscode-text-muted)] uppercase tracking-wider">
+              portfolio
+            </span>
+          </div>
+          {hardcodedFiles.map((item) => (
+            <TreeNode
+              key={item.id}
+              item={item}
+              depth={0}
+              activeTabId={activeTabId}
+              onFileClick={handleFileClick}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── DB File Node (recursive for folders) ──────────────────────────────── */
+
+function DbFileNode({
+  file, allFiles, depth, activeTabId, collapsedFolders, isAdmin,
+  onClick, onToggleFolder, onDelete, onRename, onCreateInFolder,
+  inlineInput, inlineValue, setInlineValue, onInlineSubmit, onInlineKeyDown, inlineRef,
+}: {
+  file: { id: string; name: string; isFolder: boolean; folderId: string | null };
+  allFiles: { id: string; name: string; isFolder: boolean; folderId: string | null }[];
+  depth: number;
+  activeTabId: string | null;
+  collapsedFolders: Set<string>;
+  isAdmin: boolean;
+  onClick: () => void;
+  onToggleFolder: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
+  onRename: (id: string, updates: { name?: string }) => Promise<boolean>;
+  onCreateInFolder: (folderId: string, type: "file" | "folder") => void;
+  inlineInput: { folderId: string | null; type: "file" | "folder" } | null;
+  inlineValue: string;
+  setInlineValue: (v: string) => void;
+  onInlineSubmit: () => void;
+  onInlineKeyDown: (e: React.KeyboardEvent) => void;
+  inlineRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  const isActive = !file.isFolder && activeTabId === `file-${file.id}`;
+  const isExpanded = !collapsedFolders.has(file.id);
+  const children = file.isFolder ? allFiles.filter(f => f.folderId === file.id) : [];
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(file.name);
+  const renameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (renaming && renameRef.current) renameRef.current.focus();
+  }, [renaming]);
+
+  const handleRenameSubmit = async () => {
+    if (renameValue.trim() && renameValue !== file.name) {
+      await onRename(file.id, { name: renameValue.trim() });
+    }
+    setRenaming(false);
+  };
+
+  return (
+    <div>
+      <div className={`explorer-row group flex items-center w-full py-[3px] pr-2 text-[13px] rounded-sm transition-colors ${isActive
+        ? "bg-[var(--vscode-list-hover)] text-[var(--vscode-text-bright)]"
+        : "hover:bg-[var(--vscode-line-highlight)]"
+        }`} style={{ paddingLeft: `${12 + depth * 16}px` }}>
+        {/* Clickable area */}
+        <button
+          onClick={onClick}
+          onDoubleClick={() => isAdmin && !file.isFolder && setRenaming(true)}
+          className="flex items-center flex-1 min-w-0"
+        >
+          {file.isFolder ? (
+            <>
+              <ChevronRight
+                size={14}
+                className={`mr-1 shrink-0 transition-transform text-[var(--vscode-text-muted)] ${isExpanded ? "rotate-90" : ""}`}
+              />
+              {isExpanded
+                ? <FolderOpen size={16} className="mr-1.5 shrink-0 text-[#dcdcaa]" strokeWidth={1.5} />
+                : <Folder size={16} className="mr-1.5 shrink-0 text-[#dcdcaa]" strokeWidth={1.5} />
+              }
+            </>
+          ) : (
+            <>
+              <span className="w-[14px] mr-1 shrink-0" />
+              <FileText size={16} className="mr-1.5 shrink-0 text-[#569cd6]" strokeWidth={1.5} />
+            </>
+          )}
+          {renaming ? (
+            <input
+              ref={renameRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameSubmit();
+                if (e.key === "Escape") setRenaming(false);
+              }}
+              onBlur={handleRenameSubmit}
+              className="flex-1 px-1 py-0 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-accent)] rounded-sm text-[var(--vscode-text)] outline-none min-w-0"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className="truncate text-[var(--vscode-text)]">{file.name}</span>
+          )}
+        </button>
+
+        {/* Hover actions for admin */}
+        {isAdmin && !renaming && (
+          <div className="explorer-actions flex items-center gap-0.5 ml-1 shrink-0">
+            {file.isFolder && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onCreateInFolder(file.id, "file"); }}
+                  className="p-0.5 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+                  title="New File"
+                >
+                  <Plus size={12} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onCreateInFolder(file.id, "folder"); }}
+                  className="p-0.5 rounded hover:bg-[var(--vscode-line-highlight)] text-[var(--vscode-text-muted)] hover:text-[var(--vscode-text)]"
+                  title="New Folder"
+                >
+                  <FolderPlus size={12} />
+                </button>
+              </>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
+              className="p-0.5 rounded hover:bg-red-500/20 text-[var(--vscode-text-muted)] hover:text-red-400"
+              title="Delete"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Inline creation input inside this folder */}
+      {file.isFolder && isExpanded && inlineInput && inlineInput.folderId === file.id && (
+        <div className="py-0.5" style={{ paddingLeft: `${28 + (depth + 1) * 16}px` }}>
+          <input
+            ref={inlineRef}
+            value={inlineValue}
+            onChange={(e) => setInlineValue(e.target.value)}
+            onKeyDown={onInlineKeyDown}
+            onBlur={onInlineSubmit}
+            placeholder={inlineInput.type === "file" ? "filename.mdx" : "folder name"}
+            className="w-full px-1.5 py-0.5 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-accent)] rounded-sm text-[var(--vscode-text)] outline-none"
+          />
+        </div>
+      )}
+
+      {/* Children (if folder and expanded) */}
+      {file.isFolder && isExpanded && children.map(child => (
+        <DbFileNodeChild
+          key={child.id}
+          file={child}
+          allFiles={allFiles}
+          depth={depth + 1}
+          activeTabId={activeTabId}
+          collapsedFolders={collapsedFolders}
+          isAdmin={isAdmin}
+          onToggleFolder={onToggleFolder}
+          onDelete={onDelete}
+          onRename={onRename}
+          onCreateInFolder={onCreateInFolder}
+          inlineInput={inlineInput}
+          inlineValue={inlineValue}
+          setInlineValue={setInlineValue}
+          onInlineSubmit={onInlineSubmit}
+          onInlineKeyDown={onInlineKeyDown}
+          inlineRef={inlineRef}
         />
       ))}
     </div>
   );
 }
 
+/* ── DB File Node Child (uses context directly for openFile) ─────────── */
+
+function DbFileNodeChild({
+  file, allFiles, depth, activeTabId, collapsedFolders, isAdmin,
+  onToggleFolder, onDelete, onRename, onCreateInFolder,
+  inlineInput, inlineValue, setInlineValue, onInlineSubmit, onInlineKeyDown, inlineRef,
+}: {
+  file: { id: string; name: string; isFolder: boolean; folderId: string | null };
+  allFiles: { id: string; name: string; isFolder: boolean; folderId: string | null }[];
+  depth: number;
+  activeTabId: string | null;
+  collapsedFolders: Set<string>;
+  isAdmin: boolean;
+  onToggleFolder: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
+  onRename: (id: string, updates: { name?: string }) => Promise<boolean>;
+  onCreateInFolder: (folderId: string, type: "file" | "folder") => void;
+  inlineInput: { folderId: string | null; type: "file" | "folder" } | null;
+  inlineValue: string;
+  setInlineValue: (v: string) => void;
+  onInlineSubmit: () => void;
+  onInlineKeyDown: (e: React.KeyboardEvent) => void;
+  inlineRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  const { openFile, closeSidebar } = usePortfolio();
+
+  const handleClick = () => {
+    if (file.isFolder) {
+      onToggleFolder(file.id);
+    } else {
+      openFile(`file-${file.id}`, file.name, FileText, "#569cd6");
+      if (window.innerWidth < 768) closeSidebar();
+    }
+  };
+
+  return (
+    <DbFileNode
+      file={file}
+      allFiles={allFiles}
+      depth={depth}
+      activeTabId={activeTabId}
+      collapsedFolders={collapsedFolders}
+      isAdmin={isAdmin}
+      onClick={handleClick}
+      onToggleFolder={onToggleFolder}
+      onDelete={onDelete}
+      onRename={onRename}
+      onCreateInFolder={onCreateInFolder}
+      inlineInput={inlineInput}
+      inlineValue={inlineValue}
+      setInlineValue={setInlineValue}
+      onInlineSubmit={onInlineSubmit}
+      onInlineKeyDown={onInlineKeyDown}
+      inlineRef={inlineRef}
+    />
+  );
+}
+
+/* ── Sandbox File Node (local-only, editable by anyone) ─────────────── */
+
+function SandboxFileNode({
+  file, activeTabId, onUpdate, onDelete,
+}: {
+  file: { id: string; name: string };
+  activeTabId: string | null;
+  onUpdate: (id: string, updates: { name?: string; content?: string }) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { openFile, closeSidebar } = usePortfolio();
+  const isActive = activeTabId === `sandbox-${file.id}`;
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(file.name);
+  const renameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (renaming && renameRef.current) renameRef.current.focus();
+  }, [renaming]);
+
+  const handleRenameSubmit = () => {
+    if (renameValue.trim() && renameValue !== file.name) {
+      onUpdate(file.id, { name: renameValue.trim() });
+    }
+    setRenaming(false);
+  };
+
+  return (
+    <div className="explorer-row group flex items-center w-full py-[3px] pr-2 text-[13px] rounded-sm hover:bg-[var(--vscode-line-highlight)] transition-colors"
+      style={{ paddingLeft: "12px" }}>
+      <button
+        onClick={() => {
+          openFile(`sandbox-${file.id}`, file.name, FileText, "#569cd6");
+          if (window.innerWidth < 768) closeSidebar();
+        }}
+        onDoubleClick={() => setRenaming(true)}
+        className={`flex items-center flex-1 min-w-0 ${isActive ? "text-[var(--vscode-text-bright)]" : ""}`}
+      >
+        <span className="w-[14px] mr-1 shrink-0" />
+        <FileText size={16} className="mr-1.5 shrink-0 text-[#569cd6]" strokeWidth={1.5} />
+        {renaming ? (
+          <input
+            ref={renameRef}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleRenameSubmit();
+              if (e.key === "Escape") setRenaming(false);
+            }}
+            onBlur={handleRenameSubmit}
+            className="flex-1 px-1 py-0 text-[13px] bg-[var(--vscode-input-bg)] border border-[var(--vscode-accent)] rounded-sm text-[var(--vscode-text)] outline-none min-w-0"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="truncate text-[var(--vscode-text)]">{file.name}</span>
+        )}
+      </button>
+      {!renaming && (
+        <div className="explorer-actions flex items-center gap-0.5 ml-1 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
+            className="p-0.5 rounded hover:bg-red-500/20 text-[var(--vscode-text-muted)] hover:text-red-400"
+            title="Delete"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Original TreeNode for hardcoded files
 function TreeNode({
   item,
   depth,
@@ -184,11 +660,10 @@ function TreeNode({
           if (isFolder) setExpanded((p) => !p);
           else onFileClick(item);
         }}
-        className={`flex items-center w-full py-[3px] pr-2 text-[13px] rounded-sm transition-colors ${
-          isActive
-            ? "bg-[var(--vscode-list-hover)] text-[var(--vscode-text-bright)]"
-            : "hover:bg-[var(--vscode-line-highlight)]"
-        }`}
+        className={`flex items-center w-full py-[3px] pr-2 text-[13px] rounded-sm transition-colors ${isActive
+          ? "bg-[var(--vscode-list-hover)] text-[var(--vscode-text-bright)]"
+          : "hover:bg-[var(--vscode-line-highlight)]"
+          }`}
         style={{ paddingLeft: `${12 + depth * 16}px` }}
       >
         {isFolder && (
@@ -237,44 +712,44 @@ function SearchPanel() {
 
   const results = q
     ? [
-        ...experiences
-          .filter(
-            (e) =>
-              (e.title ?? e.role ?? "")
-                .toLowerCase()
-                .includes(q) ||
-              e.company.toLowerCase().includes(q) ||
-              e.description.toLowerCase().includes(q),
-          )
-          .map((e) => ({
-            id: "experience",
-            name: "experience.tsx",
-            match:
-              e.title ?? e.role ?? e.company,
-          })),
-        ...projects
-          .filter(
-            (p) =>
-              p.name.toLowerCase().includes(q) ||
-              p.description.toLowerCase().includes(q),
-          )
-          .map((p) => ({
-            id: `project-${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-            name: `${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.tsx`,
-            match: p.name,
-          })),
-        ...articles
-          .filter(
-            (a) =>
-              a.title.toLowerCase().includes(q) ||
-              a.excerpt.toLowerCase().includes(q),
-          )
-          .map((a) => ({
-            id: `article-${a.slug}`,
-            name: `${a.slug}.mdx`,
-            match: a.title,
-          })),
-      ]
+      ...experiences
+        .filter(
+          (e) =>
+            (e.title ?? e.role ?? "")
+              .toLowerCase()
+              .includes(q) ||
+            e.company.toLowerCase().includes(q) ||
+            e.description.toLowerCase().includes(q),
+        )
+        .map((e) => ({
+          id: "experience",
+          name: "experience.tsx",
+          match:
+            e.title ?? e.role ?? e.company,
+        })),
+      ...projects
+        .filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.description.toLowerCase().includes(q),
+        )
+        .map((p) => ({
+          id: `project-${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+          name: `${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.tsx`,
+          match: p.name,
+        })),
+      ...articles
+        .filter(
+          (a) =>
+            a.title.toLowerCase().includes(q) ||
+            a.excerpt.toLowerCase().includes(q),
+        )
+        .map((a) => ({
+          id: `article-${a.slug}`,
+          name: `${a.slug}.mdx`,
+          match: a.title,
+        })),
+    ]
     : [];
 
   const handleClick = (r: { id: string; name: string }) => {

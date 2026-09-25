@@ -14,9 +14,7 @@ import {
 
 export const getProjects = cache(async () => {
   // tags come back as a real Postgres TEXT[] array — no JSON parsing needed
-  return query<ProjectRow>('SELECT * FROM "Project" ORDER BY "createdAt" DESC');
-
-  return query<ProjectRow>('SELECT * FROM "Project" ORDER BY "createdAt" DESC' )
+  return query<ProjectRow>('SELECT * FROM "Project" ORDER BY "createdAt" DESC' );
 });
 
 export const getExperiences = cache(async () => {

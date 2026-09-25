@@ -321,7 +321,9 @@ function ExplorerPanel() {
         </>
       )}
 
-      {!isAdmin && (
+      {/* Hardcoded portfolio tree — shown only when the DB has no files yet.
+          Once admins add files to the DB, those take over and this fallback hides. */}
+      {dbFiles.length === 0 && (
         <>
           <div className="mt-2 px-4 py-1">
             <span className="text-[11px] font-semibold text-[var(--vscode-text-muted)] uppercase tracking-wider">

@@ -34,7 +34,6 @@ const tabs = [
 ];
 
 export function BottomPanel() {
-  const [panelHeight, setPanelHeight] = useState(300);
   const [activeTab, setActiveTab] = useState("terminal");
   const [isDragging, setIsDragging] = useState(false);
   const [showTerminalSelector, setShowTerminalSelector] = useState(false);
@@ -44,6 +43,9 @@ export function BottomPanel() {
   const selectorRef = useRef<HTMLDivElement>(null);
   const { closeBottomPanel, isMobile, toggleChat, chatOpen, openFile } =
     usePortfolio();
+
+  const [panelHeight, setPanelHeight] = useState(isMobile ? 20 : 300);
+
   const [terminalInput, setTerminalInput] = useState("");
   const [terminalHistory, setTerminalHistory] = useState<TerminalLine[]>([]);
   const terminalEndRef = useRef<HTMLDivElement>(null);
@@ -225,67 +227,13 @@ export function BottomPanel() {
                 }}
                 className="flex-1 overflow-auto p-3 bg-[var(--vscode-terminal-bg)] font-mono text-[12px] cursor-text select-none"
               >
-                <div className="text-[var(--vscode-terminal-banner)]">
-                  Windows PowerShell
-                </div>
-                <div className="text-[var(--vscode-text-muted)]">
-                  Copyright (C) Microsoft Corporation. All rights reserved.
-                </div>
-                <div className="mt-2">
-                  <span className="text-[var(--vscode-text-muted)]">
-                    Install the latest PowerShell for new features and
-                    improvements!
-                  </span>
-                  <span className="text-[var(--vscode-accent)]">
-                    {" "}
-                    https://aka.ms/PSWindows
-                  </span>
-                </div>
                 <div className="mt-3">
                   <span className="text-[var(--vscode-terminal-green)]">
-                    PS
-                    C:\Users\benjamaeb\OneDrive\Documents\arandelle\arandelle.com&gt;
+                    PS C:\Users\my-portfolio\arandelle\arandelle.com&gt;
                   </span>
                   <span className="text-[var(--vscode-text)]">
                     {" "}
                     ssh root@143.198.1.27
-                  </span>
-                </div>
-                <div className="mt-2 text-[var(--vscode-text-muted)]">
-                  <div>
-                    Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic
-                    x86_64)
-                  </div>
-                  <div className="mt-1">
-                    {" "}
-                    * Documentation: https://help.ubuntu.com
-                  </div>
-                  <div> * Management: https://landscape.canonical.com</div>
-                  <div> * Support: https://ubuntu.com/advantage</div>
-                </div>
-                <div className="mt-3 text-[var(--vscode-terminal-green)]">
-                  <div> _____ _ _ _ </div>
-                  <div>
-                    {" "}
-                    | ___| __ __ _ _ __ ___ __ _| |_(_) __| | ___ _ __{" "}
-                  </div>
-                  <div>
-                    {" "}
-                    | |_ | &apos;__/ _` | &apos;_ ` _ \ / _` | __| |/ _` |/ _ \
-                    &apos;__|
-                  </div>
-                  <div> | _|| | | (_| | | | | | | (_| | |_| | (_| | __/ | </div>
-                  <div> |_| |_| \__,_|_| |_| |_|\__,_|\__|_|\__,_|\___|_| </div>
-                </div>
-                <div className="mt-3">
-                  <span className="text-[var(--vscode-terminal-green)]">
-                    root@portfolio
-                  </span>
-                  <span className="text-[var(--vscode-text)]">:</span>
-                  <span className="text-[var(--vscode-terminal-blue)]">~</span>
-                  <span className="text-[var(--vscode-text)]">$ </span>
-                  <span className="text-[var(--vscode-text)]">
-                    cat portrait.ascii
                   </span>
                 </div>
                 <div className="mt-2">
